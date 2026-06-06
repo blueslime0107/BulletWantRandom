@@ -26,7 +26,7 @@ const gameData = {
     },
     isPortrait: false,
     noPortrait: true,
-    no3dupdate: false
+    no3dupdate: true
 }
 
 const BGM = {

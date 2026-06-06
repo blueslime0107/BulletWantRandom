@@ -234,7 +234,6 @@ class Enemy extends ShotObject {
     kill(){
         super.kill()
         this.endAllRoutine()
-        gm.spawnArea(this, this.radius*4)
         gm.spawnEffect(EFC.enemyBlast,gm.gameLayer,this)
         gm.spawnItem(this,"point")
         Am.playSFX("eDead")
@@ -355,8 +354,7 @@ class Bullet extends ShotObject {
         this.spinMode = 0
 
         this.autoDie = {
-            outScreen: true,
-            areaKill: true,
+            outScreen: true
         }
 
         this.addChild(this.baseSprite)
@@ -766,37 +764,6 @@ class Item extends GameObject {
     }
 }
 
-class Area extends GameObject {
-    constructor(position, radius) {
-        super()
-        this.radius = radius
-        this.scale.set(0)
-        this.render = new Graphics().circle(0, 0, this.radius).fill({ color: 0xffffff })
-        this.addChild(this.render)
-        this.set(position)
-    }
-
-    trigger(){
-        for(let bullet of gm.getBullets()){
-            if(collideCircle(this,bullet) && bullet.autoDie.areaKill){
-                gm.player.areaBulKillCount++
-                if(gm.player.areaBulKillCount % 5 == 0){
-                    gm.spawnItem(bullet,"point").magnified = true
-                }
-                bullet.kill()
-            }
-        }
-    }
-
-    update(){
-        super.update()
-        if(this.scale.x < 1){
-            this.scale.x += 0.1
-            this.scale.y += 0.1
-        }
-    }
-}
-
 class Player extends GameObject {
     constructor() {
         super()
@@ -836,16 +803,6 @@ class Player extends GameObject {
         this.shots = new GameObjectGroup()
         this.addUpdate(this.shots)
 
-        this.areaText = new Text({
-            text: "0",
-            anchor: 0.5,
-            style: Data.styles.gagueText,
-            tint: 'rgb(49, 49, 49)',
-            position:{x:0,y:-64},
-            alpha: 0.2
-        })
-        this.addChild(this.areaText)
-
         // 스프라이트 애니메이션 관련 변수
         this.spriteIndex = 0
         this.spriteCount = 0
@@ -865,33 +822,19 @@ class Player extends GameObject {
         this.godMode = false
         this.shotAble = true
         this.blockMove = false
-        this.areaSpawnRadius = 40
-        this.areaSpawnStep = 24
-        this.lastAreaSpawnPos = pos(this.x, this.y)
-        this.areaBulKillCount = 0
     }
 
 
     update() {
         super.update()
         this.updateMove()
-        if(Input.isDown(KeyBind.SUB) && this.isAreaTriggerAble()){
-            Am.playSFX("release")
-            gm.clearAreas(true)
-        }
-        this.updateAreaText()
         this.updateOptions()
         this.updateShots()
         this.updateSprite()
     }
 
-    isAreaTriggerAble(){
-        return gm.areaPercent >= 20
-    }
-
     updateMove(){
         if(this.blockMove){return}
-        const oldPos = pos(this.x, this.y)
         let inputX = 0
         let inputY = 0
         if (Input.isDown(KeyBind.LEFT)) inputX -= 1
@@ -911,28 +854,8 @@ class Player extends GameObject {
         if (this.x > GS - this.radius - this.borderOffset) this.x = GS - this.radius - this.borderOffset
         if (this.y < 0 + this.radius + this.borderOffset) this.y = 0 + this.radius + this.borderOffset
         if (this.y > GS - this.radius - this.borderOffset) this.y = GS - this.radius - this.borderOffset
-
-        this.spawnMoveAreas(oldPos)
     }
 
-    spawnMoveAreas(oldPos){
-        if(!this.shotAble) return
-        const newPos = pos(this.x, this.y)
-        const movedDist = getDist(oldPos, newPos)
-        if(movedDist <= 0){
-            return
-        }
-        if(!this.lastAreaSpawnPos){
-            this.lastAreaSpawnPos = oldPos
-        }
-        let remainDist = getDist(this.lastAreaSpawnPos, newPos)
-        while(remainDist >= this.areaSpawnStep){
-            const ratio = this.areaSpawnStep / remainDist
-            this.lastAreaSpawnPos = lerpPos(this.lastAreaSpawnPos, newPos, ratio)
-            gm.spawnArea(this.lastAreaSpawnPos, this.areaSpawnRadius)
-            remainDist = getDist(this.lastAreaSpawnPos, newPos)
-        }
-    }
     updateOptions(){
         if(Input.isReleased(KeyBind.SLOW)){
             for(let i=0;i<this.options.length;i++){
@@ -960,22 +883,6 @@ class Player extends GameObject {
                     this.spawnShot({sprite: {texture: Textures.playerSubShot, angle:-90,scale:2,anchor:{x:0.8,y:0.5}},radius:10}, posAdd(option,this), 270, 40)
                 }
             }
-        }
-    }
-
-    updateAreaText(){
-        this.areaText.text = Math.floor(gm.areaPercent) + "%"
-        if(this.isAreaTriggerAble()){
-            this.areaText.tint = 'rgb(0, 132, 255)'
-            this.areaText.scale.set(1)
-            if(this.areaText.alpha == 0.6){
-                Am.playSFX("releaseAble")
-            }
-            this.areaText.alpha = 0.8
-        }else{
-            this.areaText.tint = 'rgb(49, 49, 49)'
-            this.areaText.scale.set(0.8)
-            this.areaText.alpha = 0.6
         }
     }
 
@@ -1317,13 +1224,6 @@ class GameUI extends Container{
     init(){
         this.removeChildren()
 
-        this.playerLiveC = new Container({ position: {x:20,y:20} })
-        this.playerBombC = new Container({ position: {x:20,y:20} })
-        this.addChild(this.playerLiveC)
-        this.addChild(this.playerBombC)
-
-        this.playerLiveC.position.set(GR+40, 100)
-
         this.textStyle = new TextStyle({
             fontFamily: 'Cafe24Ohsquare',
             fontSize: 24,
@@ -1333,46 +1233,6 @@ class GameUI extends Container{
                 width: 5
             }
         }); 
-
-        this.liveText = new Text({
-            text: "LIVES",
-            style: this.textStyle,
-            position:{x:-30,y:50},
-            tint:'rgb(255, 146, 240)'
-        })
-        this.playerLiveC.addChild(this.liveText)
-        this.liveIcons = []
-        for(let i=0;i<8;i++){
-            const sprite = Img.sprite('liveEmpty', 50, 'rgb(255, 255, 255)')
-            sprite.position.set(i*30, (i%2)*30) // x: 0,1,2,3,0,1,2,3 y: 0,0,0,0,1,1,1,1
-            this.playerLiveC.addChild(sprite)
-            this.liveIcons.push(sprite)
-        }
-
-        this.playerBombC.position.set(GR+40, 240)
-
-        this.bombText = new Text({
-            text: "BOMBS",
-            style: this.textStyle,
-            position:{x:-30,y:50},
-            tint:'rgb(159, 255, 146)'
-        })
-        this.playerBombC.addChild(this.bombText)
-        this.bombIcons = []
-        for(let i=0;i<8;i++){
-            const sprite = Img.sprite('bombEmpty', 50, 'rgb(255, 255, 255)')
-            sprite.position.set(i*30, (i%2)*30) // x: 0,1,2,3,0,1,2,3 y: 0,0,0,0,1,1,1,1
-            this.playerBombC.addChild(sprite)
-            this.bombIcons.push(sprite)
-        }
-
-        this.areaText = new Text({
-            text: "AREA 00%",
-            style: this.textStyle,
-            position:{x:GR+10,y:360},
-            tint:'rgb(116, 224, 255)'
-        })
-        this.addChild(this.areaText)
 
         this.bossHealth = new GagueBar({
             size:[GS-80, 15],
@@ -1442,20 +1302,6 @@ class GameUI extends Container{
         }
     }
 
-    updateHealth(){
-        for(let i=0;i<this.liveIcons.length;i++){
-            if(i < gm.player.health){
-                this.liveIcons[i].texture = Textures.live
-            }else{
-                this.liveIcons[i].texture = Textures.liveEmpty
-            }
-        }
-    }
-
-    updateAreaPercent(){
-        this.areaText.text = `AREA ${String(gm.areaPercent.toFixed(2)).padStart(6,'0')}%`
-    }
-
     updateBossHealth(){
         this.bossHealth.visible = !!gm.boss && gm.boss.health > 0
         if(!this.bossHealth.visible) return
@@ -1488,14 +1334,7 @@ export class GameManager extends SceneObject {
         this.items = new GameObjectGroup()
         this.enemys = new GameObjectGroup()
         this.effects = new GameObjectGroup()
-        this.areas = new GameObjectGroup()
         this.boss = null
-
-        this.areaCoverage = 0
-        this.areaPercent = 0
-        this.areaGridSize = GS
-        this.areaMaxCoverage = this.areaGridSize * this.areaGridSize
-        this.areaCoverageMap = new Uint8Array(this.areaMaxCoverage)
 
         this.gameLayer = new Container({
             position: {x:GX,y:GY}
@@ -1507,31 +1346,22 @@ export class GameManager extends SceneObject {
         this.enemyLayer = new Container()
         this.itemsLayer = new Container()
         this.bulletLayer = new Container()
-        this.areaLayer = new Container()
-        this.areaBackGround = new PIXI.TilingSprite({
-            texture: Img.assets.playerArea,
-            width: GS,
-            height: GS,
-            alpha : 0.5
-        })
-        this.areaBackGround.texture.source.style.addressMode = 'repeat'
-        this.areaBackGround.setMask({ mask: this.areaLayer})
 
         this.efcLayer1 = new Container()
         this.efcLayer2 = new Container()
         this.efcLayer3 = new Container()
 
-        this.addUpdate(this.bullets, this.enemys, this.effects, this.items, this.areas)
-        this.gameLayer.addChild(this.efcLayer1,this.areaBackGround,this.areaLayer, this.efcLayer2,this.enemyLayer, this.playLayer, this.itemsLayer, this.bulletLayer, this.efcLayer3)
+        this.addUpdate(this.bullets, this.enemys, this.effects, this.items)
+        this.gameLayer.addChild(this.efcLayer1,this.efcLayer2,this.enemyLayer, this.playLayer, this.itemsLayer, this.bulletLayer, this.efcLayer3)
 
-        this.backGround = new Sprite({ texture: Img.assets.ui_background })
-        this.blackGround = Img.sprite('rect', GS+8, 'rgba(0, 0, 0, 0.8)',{anchor:0,position:{x:GX-4, y:GY-4}})
-        this.backGround.addChild(this.blackGround)
+        this.gameBackGround = new Container()
+        this.backGround = Img.sprite('rect', [gameData.resolution[0], gameData.resolution[1]], 'rgb(26, 26, 26)',{anchor:0})
+        this.blackGround = Img.sprite('rect', GS+8, 'rgb(255, 255, 255)',{anchor:0,position:{x:GX-4, y:GY-4}})
+        this.gameBackGround.addChild(this.backGround, this.blackGround)
 
-        this.playGround = Img.sprite('rect', GS, 'rgba(0, 0, 0, 1)',{anchor:0})
-        this.backGround.setMask({ mask: this.playGround, inverse: true })
-        this.addChild(this.backGround)
-        this.gameLayer.addChild(this.playGround)
+        this.playGround = Img.sprite('rect', GS, 'rgb(0, 0, 0)',{anchor:0,position:{x:GX,y:GY}})
+        this.gameBackGround.setMask({ mask: this.playGround, inverse: true })
+        this.addChild(this.gameBackGround, this.playGround)
 
         this.ui = new GameUI()
         this.addChild(this.ui)
@@ -1554,12 +1384,6 @@ export class GameManager extends SceneObject {
         this.player = new Player()
         this.addUpdate(this.player)
         this.playLayer.addChild(this.player)
-        this.clearAreas()
-    }
-
-    reset(){
-        this.areaCoverage = 0
-        this.areaPercent = 0
     }
 
     enter(option = null) {
@@ -1569,7 +1393,6 @@ export class GameManager extends SceneObject {
                 ...option
             }
             this.stage = Data.stages[this.session.stageId]
-            this.clearAreas()
             this.startStage()
         }
     }
@@ -1593,77 +1416,6 @@ export class GameManager extends SceneObject {
         this.bulletLayer.addChild(bullet) // 스프라이트 레이어
         return bullet
     }
-    spawnArea(position, radius) {
-        const area = new Area(position, radius)
-        this.areas.addObject(area)
-        this.areaLayer.addChild(area)
-        
-        const minX = Math.max(0, Math.floor(area.x - area.radius))
-        const maxX = Math.min(this.areaGridSize - 1, Math.ceil(area.x + area.radius))
-        const minY = Math.max(0, Math.floor(area.y - area.radius))
-        const maxY = Math.min(this.areaGridSize - 1, Math.ceil(area.y + area.radius))
-        const radiusSq = area.radius * area.radius
-        let filledCount = 0
-        for(let y=minY;y<=maxY;y++){
-            for(let x=minX;x<=maxX;x++){
-                const dx = x + 0.5 - area.x
-                const dy = y + 0.5 - area.y
-                if(dx * dx + dy * dy > radiusSq){
-                    continue
-                }
-                const index = y * this.areaGridSize + x
-                if(this.areaCoverageMap[index]){
-                    continue
-                }
-                this.areaCoverageMap[index] = 1
-                filledCount++
-            }
-        }
-        this.areaCoverage += filledCount
-        this.updateAreaPercent()
-        return area
-    }
-    clearAreas(trigger){
-        if(trigger){for(let area of this.areas){area.trigger()}}
-        this.areaLayer.removeChildren()
-        this.areas.length = 0
-        this.areaCoverage = 0
-        this.areaCoverageMap.fill(0)
-        this.updateAreaPercent()
-        this.player.lastAreaSpawnPos = pos(this.player.x, this.player.y)
-        this.player.areaBulKillCount = 0
-    }
-    updateAreaPercent(){
-        this.areaPercent = Math.min(this.areaCoverage / this.areaMaxCoverage * 100, 100)
-        this.ui.updateAreaPercent()
-        this.player.updateAreaText()
-    }
-    isObjectInAnyArea(target){
-        for(let area of this.areas){
-            if(area.containsObject(target)){
-                return true
-            }
-        }
-        return false
-    }
-    getAreasContainingObject(target){
-        return this.areas.filter(area => area.containsObject(target))
-    }
-    interactWithAreaObjects(objects, onInteract){
-        let interactedCount = 0
-        for(let object of objects){
-            if(!object || object._killed){
-                continue
-            }
-            const areas = this.getAreasContainingObject(object)
-            if(areas.length == 0){
-                continue
-            }
-            onInteract(object, areas[0], areas)
-            interactedCount++
-        }
-        return interactedCount
-    }
     /**
      * @param {Object} data
      * @param {string} data.shape - 탄 모양 키 (예: "circle", "arrow")
@@ -1684,7 +1436,7 @@ export class GameManager extends SceneObject {
         this.bullets.addObject(bentLazer) // 오브젝트 업데이트
         return bentLazer
     }
-    spawnEnemy(pos, spell, dir, speed) {
+    spawnEnemy(pos, spell) {
         const enemy = new Enemy()
         enemy.set(pos)
         enemy.applyEnemyData(spell.enemy)
@@ -1761,8 +1513,6 @@ export class GameManager extends SceneObject {
     }
 
     subUpdate(){
-        this.areaBackGround.tilePosition.x += 1
-        this.areaBackGround.tilePosition.y += 1
         if(this.timer > 0){
             this.timer--;
             if(this.timer < 600 && this.timer % 60 == 0){
