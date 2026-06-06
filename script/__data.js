@@ -254,7 +254,7 @@ const dialogChar = {
 
 const BData = {
     lazer: { name: 'lazer', texture:"bulletLazer",radius: 2, spinMode:1,z:0},
-    spear: { name: 'spear', texture:"bulletSpear",radius: 2, spinMode:1,z:0},
+    spear: { name: 'spear', texture:"bulletSpear",radius: 6, spinMode:1,z:0},
     ring: { name: 'ring', texture:"bulletRing",radius: 2, spinMode:0,z:0},
     circle: { name: 'circle', texture:"bulletCircle",radius: 4, spinMode:0,z:0},
     kunai: { name: 'kunai', texture:"bulletKunai",radius: 2, spinMode:1,z:0},

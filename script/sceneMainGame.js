@@ -31,7 +31,6 @@ export class StageRoutine extends Routine {
     }
 
     clearAll(){
-        console.log("clearAll")
         gm.killAll() 
         gm.killEffect(EFC.spellBG)
     }
@@ -349,6 +348,7 @@ class Bullet extends ShotObject {
             scale:2
         })
 
+        this.data = null
         this.shape = 0
         this.color = 0
         this.spinMode = 0
@@ -359,8 +359,8 @@ class Bullet extends ShotObject {
 
         this.addChild(this.baseSprite)
 
-        this.hitCircleSprite = Img.sprite('circle', this.radius, 'rgb(255, 0, 0)')
         if(gm.showHitCircle) {
+            this.hitCircleSprite = Img.sprite('circle', this.radius, 'rgb(255, 0, 0)')
             this.baseSprite.addChild(this.hitCircleSprite)
         }
     }
@@ -378,7 +378,16 @@ class Bullet extends ShotObject {
         return this
     }
 
+    setScale(value){
+        this.baseSprite.scale.set(value+1)
+        this.radius = this.data.radius + value*0.5
+        if(gm.showHitCircle) {
+            this.hitCircleSprite.scale.set(this.radius / 128)
+        }
+    }
+
     setBullet(data,color){
+        this.data = data
         this.radius = data.radius
         this.spinMode = data.spinMode
         this.zIndex = data.z
@@ -386,7 +395,9 @@ class Bullet extends ShotObject {
         this.baseSprite.texture = Textures[data.texture][color]
         this.shape = data.name
         this.color = color
-        this.hitCircleSprite.scale.set(this.radius / 64) // 히트박스 원 크기에 맞게 조정
+        if(gm.showHitCircle) {
+            this.hitCircleSprite.scale.set(this.radius / 128) // 히트박스 원 크기에 맞게 조정
+        }
         if(this.shape == "arrow"){
             this.baseSprite.anchor.set(0.5,0.25)
         }
@@ -767,7 +778,7 @@ class Item extends GameObject {
 class Player extends GameObject {
     constructor() {
         super()
-        this.radius = 6
+        this.radius = 12
         this.speed = 10
         this.borderOffset = 8
         this.itemgetline = 250
