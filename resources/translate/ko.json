@@ -1,0 +1,40 @@
+{
+    "langName": "한국어",
+    "font":[
+        "Cafe24Ohsquare",
+        "Arial"
+    ],
+    "test": "테스트",
+    "menu_tutorial": "튜토리얼 시작",
+    "menu_start": "게임 시작",
+    "menu_extra": "엑스트라 시작",
+    "menu_practice": "연습 시작",
+    "menu_replay": "리플레이",
+    "menu_playerData": "플레이어 데이터",
+    "menu_option": "옵션",
+    "menu_exit": "종료",
+    "menu_back": "뒤로",
+    "saved_done": "저장 완료.",
+    "option_bgm": "배경음",
+    "option_sfx": "효과음",
+    "option_language": "언어",
+    "option_fullscreen": "전체화면",
+    "main_title": "본게임",
+    "main_mode": "모드",
+    "main_stage": "스테이지",
+    "main_playtime": "플레이 시간",
+    "main_back": "ESC : 일시정지",
+    "pause_title": "일시정지",
+    "pause_resume": "이어하기",
+    "pause_restart": "재시작",
+    "pause_option": "옵션",
+    "pause_back_title": "타이틀로 돌아가기",
+    "diff_easy": "쉬움",
+    "diff_normal": "보통",
+    "diff_hard": "어려움",
+    "diff_lunatic": "루나틱",
+    "character": {
+        "ballballY": "볼볼이",
+        "sizuku": "시즈쿠"
+    }
+}
