@@ -58,6 +58,42 @@ const Enemys = {
     stage1_boss1: () => cropImg(Img.assets.stage1_boss1, 0, 0, 81, 108, 4, 1),
 }
 
+const Bullets = {
+    bulletLazer: ()=> cropImg(Img.assets.bullet, 0, 0, 16, 16, 9,1),
+    bulletSpear: ()=>cropImg(Img.assets.bullet, 0, 16, 16, 16, 9,1),
+    bulletRing: ()=>cropImg(Img.assets.bullet, 0, 32, 16, 16, 9,1),
+    bulletCircle: ()=>cropImg(Img.assets.bullet, 0, 48, 16, 16, 9,1),
+    bulletRice: ()=>cropImg(Img.assets.bullet, 0, 64, 16, 16, 9,1),
+    bulletKunai: ()=>cropImg(Img.assets.bullet, 0, 80, 16, 16, 9,1),
+    bulletIce: ()=>cropImg(Img.assets.bullet, 0, 96, 16, 16, 9,1),
+    bulletPaper: ()=>cropImg(Img.assets.bullet, 0, 112, 16, 16, 9,1),
+    bulletGun: ()=>cropImg(Img.assets.bullet, 0, 128, 16, 16, 9,1),
+    bulletDarkRice: ()=>cropImg(Img.assets.bullet, 0, 144, 16, 16, 9,1),
+    bulletStar: ()=>cropImg(Img.assets.bullet, 0, 160, 16, 16, 9,1),
+    bulletTear: ()=>cropImg(Img.assets.bullet, 0, 176, 16, 16, 9,1),
+    bulletSmallDisappear: ()=>cropImg(Img.assets.bullet, 0, 192, 16, 16, 9,1),
+    bulletDarksnow: ()=>cropImg(Img.assets.bullet, 0,208, 8, 8, 9,1),
+    bulletSmallrice: ()=>cropImg(Img.assets.bullet, 0,216, 8, 8, 9,1),
+    bulletSnow: ()=>cropImg(Img.assets.bullet, 0,224, 8, 8, 9,1),
+    bulletBigStar: () => cropImg(Img.assets.bullet, 144,0, 32, 32, 9,1),
+    bulletBig: () => cropImg(Img.assets.bullet, 144,32, 32, 32, 9,1),
+    bulletFairy: () => cropImg(Img.assets.bullet, 144,64, 32, 32, 9,1),
+    bulletKnife: () => cropImg(Img.assets.bullet, 144,96, 32, 32, 9,1),
+    bulletOval: () => cropImg(Img.assets.bullet, 144,128, 32, 32, 9,1),
+    bulletRest: () => cropImg(Img.assets.bullet, 144,160, 32, 32, 9,1),
+    bulletStone: () => cropImg(Img.assets.bullet, 144,192, 32, 32, 9,1),
+    bulletBigTear: () => cropImg(Img.assets.bullet, 144,224, 32, 32, 9,1),
+    bulletYinyang: () => cropImg(Img.assets.bullet, 144,256, 32, 32, 9,1),
+    bulletHeart: () => cropImg(Img.assets.bullet, 144,288, 32, 32, 9,1),
+    bulletArrow: () => cropImg(Img.assets.bullet, 144,320, 32, 32, 9,1),
+    bulletSpawn: () => cropImg(Img.assets.bullet, 144,384, 32, 32, 9,1),
+    bulletVeryBig: () => cropImg(Img.assets.bullet, 432,0, 64, 64, 5,2),
+    bulletBigYinyang: () => cropImg(Img.assets.bullet, 432,128, 64, 64, 5,2),
+    bulletLight: () => cropImg(Img.assets.bullet, 432,256, 64, 64, 5,2),
+    bulletBentLazer: () => cropImg(Img.assets.bullet, 144,512, 256, 16, 1,9),
+    bulletNuke: () => cropImg(Img.assets.bullet, 432,384, 256, 256, 1,1),
+}
+
 const Utilitys = {
     live: () => cropImg(Img.assets.utility, 0, 0, 64, 64),
     liveEmpty: () => cropImg(Img.assets.utility, 64, 0, 64, 64),
@@ -69,7 +105,9 @@ const Utilitys = {
 const Textures = {
     ...Stands,
     ...Enemys,
+    ...Bullets,
     ...Utilitys,
+
     rect: function () {
         let g = new Graphics();
         g.rect(0, 0, 1, 1).fill({ color: 0xffffff })
@@ -129,135 +167,8 @@ const Textures = {
     playerOption: () => cropImg(Img.assets.player, 0, 144, 16, 16),
     playerMainShot: () => cropImg(Img.assets.player, 0, 160, 64, 16),
     playerSubShot: () => cropImg(Img.assets.player, 0, 176, 64, 16),
-    itemPoint:() => cropImg(Img.assets.bullet, 465, 388, 16, 16),
+    itemPoint:() => cropImg(Img.assets.bullet, 16, 528, 16, 16),
     itemBombPiece:() => cropImg(Img.assets.bullet, 353, 388, 32, 32),
-    bulletLazer: ()=>smallBullet(0, 0),
-    bulletSpear: ()=>smallBullet(0, 16),
-    bulletRing: ()=>smallBullet(0, 16*2),
-    bulletCircle: ()=>smallBullet(0, 16*3),
-    bulletRice: ()=>smallBullet(0, 16*4),
-    bulletKunai: ()=>smallBullet(0, 16*5),
-    bulletIce: ()=>smallBullet(0, 16*6),
-    bulletPaper: ()=>smallBullet(0, 16*7),
-    bulletGun: ()=>smallBullet(0, 16*8),
-    bulletDarkRice: ()=>smallBullet(0, 16*9),
-    bulletStar: ()=>smallBullet(0, 16*10),
-    bulletSmallDisappear: ()=>smallBullet(0, 16*11),
-    bulletTear: ()=>smallBullet(0, 448),
-    bulletDarksnow: ()=>verySmallBullet(0,192),
-    bulletSmallrice: ()=>verySmallBullet(64,192),
-    bulletSnow: ()=>verySmallBullet(0,240),
-    bulletHeart: () => normalBullet(0,256),
-    bulletArrow: () => normalBullet(0,256+32),
-    bulletBigStar: () => normalBullet(256,32*0),
-    bulletBig: () => normalBullet(256,32*1),
-    bulletFairy: () => normalBullet(256,32*2),
-    bulletKnife: () => normalBullet(256,32*3),
-    bulletOval: () => normalBullet(256,32*4),
-    bulletStone: () => normalBullet(256*2,32*3),
-    bulletBigTear: () => normalBullet(256*2,32*4),
-    bulletYinyang: () => normalBullet(256*2,32*5),
-    bulletVeryBig: () => cropImg(Img.assets.bullet, 256,192, 64, 64, 4,1),
-    bulletSpawn: () => normalBullet(256,32*5),
-    bulletLight: function(){
-        const list = []
-        list.push(new PIXI.Texture({source: Img.assets.bullet,
-            frame: { x: 256, y: 256, width: 64, height: 64 }
-        }))
-        list.push(new PIXI.Texture({source: Img.assets.bullet,
-            frame: { x: 256+64, y: 256, width: 64, height: 64 }
-        }))
-        list.push(new PIXI.Texture({source: Img.assets.bullet,
-            frame: { x: 256+64*3, y: 256+64, width: 64, height: 64 }
-        }))
-        list.push(new PIXI.Texture({source: Img.assets.bullet,
-            frame: { x: 256+64*2, y: 256+64, width: 64, height: 64 }
-        }))
-        list.push(new PIXI.Texture({source: Img.assets.bullet,
-            frame: { x: 256+64, y: 256+64, width: 64, height: 64 }
-        }))
-        list.push(new PIXI.Texture({source: Img.assets.bullet,
-            frame: { x: 256, y: 256+64, width: 64, height: 64 }
-        }))
-        list.push(new PIXI.Texture({source: Img.assets.bullet,
-            frame: { x: 256+64*3, y: 256, width: 64, height: 64 }
-        }))
-        list.push(new PIXI.Texture({source: Img.assets.bullet,
-            frame: { x: 256+64*2, y: 256, width: 64, height: 64 }
-        }))
-        return list
-    },
-    bulletBentLazer: function () {
-        const list = []
-        const colorIndex = [0,2,14,13,10,8,6,4]
-        for(let i=0;i<8;i++){
-            const tex = new PIXI.Texture({
-                source: Img.assets.bullet,
-                frame: { x: 512, y: 224+36+24*colorIndex[i], width: 256, height: 16 }
-            })
-            list.push(tex)
-        }
-        return list
-    },
-
-}
-
-function smallBullet(x,y){
-    const list = []
-    const colorIndex = [0,2,14,13,10,8,6,4,15]
-    for(let i=0;i<colorIndex.length;i++){
-        const tex = new PIXI.Texture({
-            source: Img.assets.bullet,
-            frame: { x: x+16*colorIndex[i], y: y, width: 16, height: 16 }
-        })
-        list.push(tex)
-    }
-    return list
-}
-
-function verySmallBullet(x,y){
-    const list = []
-    list.push(new PIXI.Texture({source: Img.assets.bullet,
-        frame: { x: x, y: y, width: 8, height: 8 }
-    }))
-    list.push(new PIXI.Texture({source: Img.assets.bullet,
-        frame: { x: x+8*2, y: y, width: 8, height: 8 }
-    }))
-    list.push(new PIXI.Texture({source: Img.assets.bullet,
-        frame: { x: x+8*6, y: y+8, width: 8, height: 8 }
-    }))
-    list.push(new PIXI.Texture({source: Img.assets.bullet,
-        frame: { x: x+8*5, y: y+8, width: 8, height: 8 }
-    }))
-    list.push(new PIXI.Texture({source: Img.assets.bullet,
-        frame: { x: x+8*2, y: y+8, width: 8, height: 8 }
-    }))
-    list.push(new PIXI.Texture({source: Img.assets.bullet,
-        frame: { x: x, y: y+8, width: 8, height: 8 }
-    }))
-    list.push(new PIXI.Texture({source: Img.assets.bullet,
-        frame: { x: x+8*6, y: y, width: 8, height: 8 }
-    }))
-    list.push(new PIXI.Texture({source: Img.assets.bullet,
-        frame: { x: x+8*4, y: y, width: 8, height: 8 }
-    }))
-    list.push(new PIXI.Texture({source: Img.assets.bullet,
-        frame: { x: x+8*7, y: y+8, width: 8, height: 8 }
-    }))
-    return list
-}
-
-function normalBullet(x,y){
-    const list = []
-    const colorIndex = [0,1,7,6,5,4,3,2]
-    for(let i=0;i<9;i++){
-        const tex = new PIXI.Texture({
-            source: Img.assets.bullet,
-            frame: { x: x+32*colorIndex[i], y: y, width: 32, height: 32 }
-        })
-        list.push(tex)
-    }
-    return list
 }
 
 async function LoadTexture() {

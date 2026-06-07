@@ -679,6 +679,14 @@ const Easing = {
             (1 + Easing.easeOutBounce(2 * t - 1)) / 2,
 };
 
+const Graph = {
+  sin: function(n, min, max, length){
+    const amplitude = (max - min) / 2;
+    const mid = (max + min) / 2;
+    return mid + amplitude * Math.sin((n / length) * 2 * Math.PI);
+  }
+}
+
 const KeyCode = {
   Backspace: 8,
   Tab: 9,

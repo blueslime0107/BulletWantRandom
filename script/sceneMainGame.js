@@ -234,7 +234,7 @@ class Enemy extends ShotObject {
         super.kill()
         this.endAllRoutine()
         gm.spawnEffect(EFC.enemyBlast,gm.gameLayer,this)
-        gm.spawnItem(this,"point")
+        // gm.spawnItem(this,"point")
         Am.playSFX("eDead")
         this.die()
     }
@@ -353,6 +353,8 @@ class Bullet extends ShotObject {
         this.color = 0
         this.spinMode = 0
 
+        this.noDamage = false
+
         this.autoDie = {
             outScreen: true
         }
@@ -411,7 +413,7 @@ class Bullet extends ShotObject {
         if(this.autoDie.outScreen && this.onceShowAndOffScreen()){
             this.die()
         }
-        if(collideCircle(this, gm.player)){
+        if(!this.noDamage && collideCircle(this, gm.player)){
             gm.player.damage()
         }
         if(this.spinMode == 1){
@@ -443,10 +445,11 @@ class Lazer extends GameObject {
         this.startPos = data.startPos
         this.endPos = data.endPos
         this.shape = null
-        this.color = 0
-
+        this.color = data.color
+        
         this.guideTime = data.guideTime || 0
         this.atkTime = data.atkTime || 60
+        this.attacking = false
 
         
         this.lazerPoints = [new PIXI.Point(this.x, this.y), new PIXI.Point(this.x, this.y)]
@@ -454,7 +457,8 @@ class Lazer extends GameObject {
         this.lazerMesh = new PIXI.MeshRope({
             texture: PIXI.Texture.EMPTY,
             points: this.lazerPoints,
-            textureScale: 0
+            textureScale: 0,
+            blendMode: 'add'
         })
         this.setLazer(data.shape,data.color)
         // _render가 매 프레임 _width를 texture.height로 덮어쓰므로 onRender 교체
@@ -467,27 +471,44 @@ class Lazer extends GameObject {
         gm.bulletLayer.addChild(this.lazerMesh)
         this.lazerFrame = 0
 
+        this.spawnEffectSprite = new Sprite({
+            texture: Img.texture.bulletSpawn[this.color],
+            anchor: 0.5,
+            scale: 0,
+            position: this.startPos
+        })
+        gm.efcLayer3.addChild(this.spawnEffectSprite)
+
         this.length = getDist(this.startPos,this.endPos)
         this.dir = lookPoint(this.startPos,this.endPos)
         this.initBullet()
+    }
+    setDir(value){
+        this.dir = value
+        this.endPos = goAngle(this.startPos,this.dir,this.length)
     }
     setWidth(value){
         this.lazerWidth = 4 + 36 * value
     }
     setLazer(data,color){
-        const bt = Textures[`bullet${data.charAt(0).toUpperCase() + data.slice(1)}`][color]
+        const bt = Textures[data.texture][color]
         const frame = bt.frame.clone()
         frame.y += 1
         frame.height -= 2
-        this.lazerMesh.texture = new PIXI.Texture({ source: bt.source, frame: frame, rotate: 2 })
+        this.lazerMesh.texture = new PIXI.Texture({ 
+            source: bt.source, 
+            frame: frame, 
+            rotate: 2 
+        })
         this.shape = data
         this.color = color
     }
     spBullet(){
-        const bullet = gm.spawnBullet("circle",6,this.startPos,0,0)
+        const bullet = gm.spawnBullet(BData.circle,6,this.startPos,0,0)
         bullet.setAutoDie({outScreen:false})
-        bullet.baseSprite.alpha = 0.2
-        // bullet.removeChild(bullet.baseSprite)
+        bullet.baseSprite.visible = false
+        // bullet.baseSprite.alpha = 0.2
+        bullet.noDamage = true
         this.bullets.push(bullet)
         return bullet
     }
@@ -500,17 +521,17 @@ class Lazer extends GameObject {
             bullet.set(lerpPos(this.startPos,this.endPos,bullet.count/this.length))
         }
     }
+    replaceBullet(){
+        for(let bullet of this.bullets){
+            bullet.set(lerpPos(this.startPos,this.endPos,bullet.count/this.length))
+        }
+    }
     update(){
         super.update()
         this.spBullet()
 
-        for(let i=0;i<this.bullets.length;i++){
-            const bullet = this.bullets[i]
-            bullet.count+=30 // 이동
-            const value = bullet.count/this.length
-            if(value > 1){bullet.die(); this.bullets.splice(i, 1); i--; continue;}
-            bullet.set(lerpPos(this.startPos,this.endPos,value))
-        }
+        this.spawnEffectSprite.angle += 25
+        this.spawnEffectSprite.position.set(this.startPos.x,this.startPos.y)
         
         this.bullets = this.bullets.filter(bullet => bullet.valiable && !bullet._killed)
         const count = this.bullets.length
@@ -534,6 +555,16 @@ class Lazer extends GameObject {
             }
             this.lazerMesh.visible = true
         }
+
+        for(let i=0;i<this.bullets.length;i++){
+            const bullet = this.bullets[i]
+            bullet.noDamage = !this.attacking
+            bullet.count+=30 // 이동
+            const value = bullet.count/this.length
+            if(value > 1){bullet.die(); this.bullets.splice(i, 1); i--; continue;}
+            bullet.set(lerpPos(this.startPos,this.endPos,value))
+        }
+
         this.updateGuideAtk()
     }
     updateGuideAtk(){
@@ -541,15 +572,19 @@ class Lazer extends GameObject {
         const guideEnd = this.guideTime
         const atkEnd = guideEnd + this.atkTime
         if(this.lazerFrame <= guideEnd){
+            if(this.lazerFrame <= 10) this.spawnEffectSprite.scale.set(this.lazerFrame/10*3)
             // 가이드 구간: 가늘게 유지
         }else if(this.lazerFrame <= guideEnd + 10){
+            this.attacking = true
             // 가이드 끝 → 1초(60프레임) 동안 width 키우기
             this.setWidth(frameMove(0, 1, this.lazerFrame - guideEnd, 10, Easing.easeOutSine))
         }else if(this.lazerFrame <= atkEnd){
             // 공격 유지 구간
             this.setWidth(1)
         }else if(this.lazerFrame <= atkEnd + 10){
+            this.attacking = false
             // 공격 끝 → 1초(60프레임) 동안 width 줄이기
+            this.spawnEffectSprite.scale.set(3-(this.lazerFrame - atkEnd)/10*3)
             this.setWidth(frameMove(1, 0, this.lazerFrame - atkEnd, 10, Easing.easeInSine))
         }else{
             // 줄이기 완료 → kill
@@ -560,15 +595,13 @@ class Lazer extends GameObject {
 
     kill(){
         this.lazerMesh.destroy()
-        
+        this.spawnEffectSprite.destroy()
         for(let i=0;i<this.bullets.length;i++){
             const bullet = this.bullets[i]
             bullet.die();
         }
-
         this.die()
     }
-
 }
 
 class BentLazer extends ShotObject {
@@ -591,7 +624,8 @@ class BentLazer extends ShotObject {
         this.lazerMesh = new PIXI.MeshRope({
             texture: Textures.bulletBentLazer[this.color],
             points: this.lazerPoints,
-            textureScale: 0
+            textureScale: 0,
+            blendMode: 'add'
         })
         // _render가 매 프레임 _width를 texture.height로 덮어쓰므로 onRender 교체
         this.lazerMesh.onRender = () => {
@@ -916,6 +950,7 @@ class Player extends GameObject {
 
     damage(){
         if(this.godMode){return}
+        gm.killAll()
         this.hitSprite.visible = false
         this.godMode = true
         this.shotAble = false
@@ -1453,8 +1488,8 @@ export class GameManager extends SceneObject {
      * @param {number} [data.guideTime=0] - 가이드 표시 프레임 수
      * @param {number} [data.atkTime=60] - 공격 지속 프레임 수
      */
-    spawnLazer(data){
-        const lazer = new Lazer(data)
+    spawnLazer(shape, color, startPos, endPos, guideTime = 60, atkTime = 60) {
+        const lazer = new Lazer({shape, color, startPos, endPos, guideTime, atkTime})
         this.bullets.addObject(lazer) // 오브젝트 업데이트
         return lazer
     }

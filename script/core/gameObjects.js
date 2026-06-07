@@ -390,6 +390,15 @@ export const GameObjectBase = Base => class extends Base {
         })
         return this
     }
+    MoveValue(key, speed, time){
+        console.log(key)
+        this.startRoutine("setvalue", function (self) {
+            if (this.whileFrame(time)) {
+                self[key] += speed
+            }
+        })
+        return this
+    }
     outofWindow(){
         const p = this.getGlobalPosition();
         const r = this.radius + Math.max(this.width,this.height);
