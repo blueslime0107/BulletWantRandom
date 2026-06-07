@@ -18,9 +18,9 @@ export class StageRoutine extends Routine {
             gm.activeBoss(spell)
             gm.boss.finalMode = final
             if(spell.name){ 
-                gm.spawnEffect(EFC.spellAlert,gm.efcLayer3,posZero,{spell:spell.name})
-                gm.spawnEffect(EFC.spellBG,gm.efcLayer1,posZero,{profile:spell.spellProfile})
-                gm.spawnEffect(EFC.spellStand,gm.efcLayer2,posZero,{texture:spell.spellProfile})
+                gm.spawnEffect(EFC.spellAlert,gm.efcBulletAbove,posZero,{spell:spell.name})
+                gm.spawnEffect(EFC.spellBG,gm.efcEnemyUnder,posZero,{profile:spell.spellProfile})
+                gm.spawnEffect(EFC.spellStand,gm.efcEnemyUnder,posZero,{texture:spell.spellProfile})
                 gm.spellCount--;
                 gm.ui.updateBossSpells(gm.ui.spellCount-1)
             }
@@ -114,6 +114,9 @@ class Enemy extends ShotObject {
         this.pendingState = null
         this.isFadeTransition = false
         this.fadeIndex = 0
+
+        this.red = 0
+        this.blue = 0
     }
 
     applyEnemyData(enemy){
@@ -137,11 +140,14 @@ class Enemy extends ShotObject {
         if(this.idleFrame && this.idleFrame.length > 0){
             this.baseSprite.texture = this.texture[this.idleFrame[0]]
         }
+
     }
 
     activeSpell(spell){
         this.health = spell.health
         this.spell = spell
+        this.red = spell.red
+        this.blue = spell.blue
         this.startRoutine("spell",spell.spell)
     }
 
@@ -234,9 +240,14 @@ class Enemy extends ShotObject {
         super.kill()
         this.endAllRoutine()
         gm.spawnEffect(EFC.enemyBlast,gm.gameLayer,this)
-        // gm.spawnItem(this,"point")
+        this.whenDeadScore()
         Am.playSFX("eDead")
         this.die()
+    }
+
+    whenDeadScore(){
+        sys.blueScore += this.blue
+        sys.redScore += this.red
     }
 }
 
@@ -477,7 +488,7 @@ class Lazer extends GameObject {
             scale: 0,
             position: this.startPos
         })
-        gm.efcLayer3.addChild(this.spawnEffectSprite)
+        gm.efcBulletAbove.addChild(this.spawnEffectSprite)
 
         this.length = getDist(this.startPos,this.endPos)
         this.dir = lookPoint(this.startPos,this.endPos)
@@ -731,8 +742,8 @@ class PlayerShot extends ShotObject {
 
     update(){
         if(!this.valiable){
-            this.scale.x += 1
-            this.scale.y += 1
+            this.scale.x += 0.2
+            this.scale.y += 0.2
             this.alpha -= 4/10
             if(this.alpha <= 0){
                 this.die()
@@ -834,9 +845,6 @@ class Player extends GameObject {
         this.borderOffset = 8
         this.itemgetline = 250
 
-        // this.darkCircle = Img.sprite('gradiusCircle', 128, 'rgb(0, 36, 77)')
-        // this.addChild(this.darkCircle)
-
         this.baseSprite = new Sprite({
             texture: Textures.playerIdle[0],
             anchor: 0.5,
@@ -878,8 +886,8 @@ class Player extends GameObject {
 
     reset(){
         this.position.set(GS * 0.5, GS * 0.75)
-        this.shotSubDelay = 4
-        this.shotMainDelay = 2
+        this.shotSubDelay = 30
+        this.shotMainDelay = 10
         this.shotCount = 0
         this.godMode = false
         this.shotAble = true
@@ -932,17 +940,24 @@ class Player extends GameObject {
             }
         }
     }
+    
     updateShots(){
         if(!this.shotAble) return
         this.shotCount++
         if(Input.isDown(KeyBind.OK)){
             if(this.shotCount % this.shotMainDelay == 0){
-                this.spawnShot({sprite: {texture: Textures.playerMainShot, angle:-90,scale:2,anchor:{x:0.8,y:0.5}},radius:10}, pos(this.x-10,this.y), 270, 40)
-                this.spawnShot({sprite: {texture: Textures.playerMainShot, angle:-90,scale:2,anchor:{x:0.8,y:0.5}},radius:10}, pos(this.x+10,this.y), 270, 40)
+                this.spawnShot(
+                    {sprite: {texture: Textures.playerMainShot, angle:-90,scale:2,anchor:{x:0.8,y:0.5}},radius:10}, 
+                    pos(this.x-10,this.y)).MoveDir(-90,40)
+                this.spawnShot(
+                    {sprite: {texture: Textures.playerMainShot, angle:-90,scale:2,anchor:{x:0.8,y:0.5}},radius:10}, 
+                    pos(this.x+10,this.y)).MoveDir(-90,40)
             }
             if(this.shotCount % this.shotSubDelay == 0){
                 for(let option of this.options){
-                    this.spawnShot({sprite: {texture: Textures.playerSubShot, angle:-90,scale:2,anchor:{x:0.8,y:0.5}},radius:10}, posAdd(option,this), 270, 40)
+                    this.spawnShot(
+                        {sprite: {texture: Textures.playerSubShot, angle:-90,scale:2,anchor:{x:0.8,y:0.5}},radius:10},
+                        posAdd(option,this)).MoveDir(-90,10)
                 }
             }
         }
@@ -998,12 +1013,12 @@ class Player extends GameObject {
         })
     }
 
-    spawnShot(sprite,pos,dir,spd ){
+    spawnShot(sprite,pos){
         const shot = new PlayerShot(sprite)
         shot.set(pos)
-        shot.MoveDir(dir,spd)
         this.shots.addObject(shot)
         gm.playLayer.addChild(shot)
+        return shot
     }
 
     updateSprite(){
@@ -1289,13 +1304,36 @@ class GameUI extends Container{
 
         this.textStyle = new TextStyle({
             fontFamily: 'Cafe24Ohsquare',
-            fontSize: 24,
+            fontSize: 36,
             fill: 'rgb(255, 255, 255)',
             stroke: {
                 color: 'rgba(0, 0, 0, 1)',
                 width: 5
             }
         }); 
+
+        this.goalScoreText = new Text({ text: "목표점수", style: this.textStyle })
+        this.goalScore = new Text({ text: "000,000,000", style: this.textStyle })
+
+        this.curScoreText = new Text({ text: "점수", style: this.textStyle })
+        this.curScore = new Text({ text: "000,000,000", style: this.textStyle })
+
+        this.blueScore = new Text({ text: "0", style: this.textStyle, tint: 'rgb(69, 97, 255)' })
+        this.bigX = new Text({ text: "X", style: this.textStyle, tint: 'rgb(255, 255, 255)' })
+        this.redScore = new Text({ text: "1", style: this.textStyle, tint: 'rgb(255, 0, 0)' })
+
+        this.coinText = new Text({ text: "Coin", style: this.textStyle, tint: 'rgb(255, 234, 49)' })
+        this.coin = new Text({ text: "0", style: this.textStyle, tint: 'rgb(255, 234, 49)' })
+
+        this.addChild(this.goalScoreText, this.goalScore, this.curScoreText, this.curScore, this.blueScore, this.bigX, this.redScore, this.coinText, this.coin)
+        let stack = 0
+        for(let i=0;i<this.children.length;i++){
+            const child = this.children[i]
+            child.anchor.set(0.5)
+            child.x = GR + 150
+            child.y = GY + 20 + stack
+            stack += [40,60,40,60,40,40,60,40][i]
+        }
 
         this.bossHealth = new GagueBar({
             size:[GS-80, 15],
@@ -1343,15 +1381,15 @@ class GameUI extends Container{
         })
         this.addChild(this.bossBottomAlert)
 
-        this.spellTimer = new Text({
+        this.timer = new Text({
             text: "00",
             style: this.textStyle,
-            position:{x:GR-50,y:GY-4},
-            scale: 1.3,
+            position:{x:GCX,y:GY-4},
+            scale: 1,
             tint:'rgb(255, 255, 255)',
             visible: false
         })
-        this.addChild(this.spellTimer)
+        this.addChild(this.timer)
 
         this.updateBossHealth()
     }
@@ -1379,8 +1417,151 @@ class GameUI extends Container{
     }
 
     updateTimer(){
-        this.spellTimer.visible = gm.timer > 0
-        this.spellTimer.text = String(Math.ceil(gm.timer / 60)).padStart(2,'0')
+        this.timer.visible = sys.timer > 0
+        this.timer.text = String(Math.ceil(sys.timer / 60)).padStart(2,'0')
+    }
+}
+
+class EffectPlayBox {
+    constructor(){
+    }
+    
+    init(){
+        this.initRoundAlert()
+    }
+
+    initRoundAlert(){
+        this.roundAlertObject = new GameObject()
+        gm.efcEnemyUnder.addChild(this.roundAlertObject)
+        this.roundAlertText = new Text({
+            text: "ROUND 01",
+            style: new TextStyle({
+                fontFamily: 'Cafe24Ohsquare',
+                fontSize: 72,
+                fill: 'rgb(255, 255, 255)'
+            }),
+            anchor: 0.5
+        })
+        this.roundAlertObject.addChild(this.roundAlertText)
+        gm.addUpdate(this.roundAlertObject)
+    }
+
+    roundAlert(num){
+        this.roundAlertText.text = `ROUND ${String(num).padStart(2,'0')}`
+        this.roundAlertObject.startRoutine("roundAlert", function(self){
+            if(this.whenTime(0)){
+                self.set(GS,GS*0.5)
+                self.MoveTime(pos(GS*0.5,GS*0.5), 30, Easing.easeOutCubic)
+            }
+            if(this.whenTime(60)){
+                self.MoveTime(pos(-200,GS*0.5), 30, Easing.easeOutCubic)
+            }
+        })
+    }
+}
+
+export class SystemManager {
+    constructor(){
+        this.round = 0
+        this.goalScore = 2000
+
+        this._blueScore = 0
+        this._redScore = 1
+        this.totalScore = 0
+
+        this.roundTime = 120
+
+        this.timer = 0
+
+        this.enemys = [ ]
+    }
+
+    set blueScore(value){
+        this._blueScore = value
+        gm.ui.blueScore.text = String(this._blueScore)
+        this.updateTotalScore()
+    }
+
+    get blueScore(){
+        return this._blueScore
+    }
+
+    set redScore(value){
+        this._redScore = value
+        gm.ui.redScore.text = String(this._redScore)
+        this.updateTotalScore()
+    }
+
+    get redScore(){
+        return this._redScore
+    }
+
+    update(){
+        this.updateTimer()
+    }
+
+    updateTimer(){
+        if(this.timer > 0){
+            this.setTime(this.timer - 1)
+            if(this.timer < 600 && this.timer % 60 == 0){
+                Am.playSFX("timer")
+            }
+        }
+    }
+
+    updateTotalScore(){
+        this.totalScore = Math.floor(this._blueScore * this._redScore)
+    }
+
+    setTime(value){
+        this.timer = value
+        gm.ui.updateTimer()
+    }
+
+    addEnemy(data){
+        // 복사해 저장
+        const enemy = {
+            enemy: data.enemy,
+            health: data.health,
+            blue: data.blue,
+            red: data.red,
+            spawnRate: data.spawnRate,
+            spell: data.spell
+        }
+        this.enemys.push(enemy)
+    }
+
+    firstRound(){
+        this.addEnemy(enemyArcaive.rush)
+        this.addEnemy(enemyArcaive.smallBullet)
+    }
+
+    startRound(){
+        if(this.round == 0){
+            this.firstRound()
+        }
+        this.round++
+        gm.endAllRoutine(true)
+        gm.startRoutine("round",function(){
+            if(this.whenTime(0)){
+                gm.effectBox.roundAlert(1)
+            }
+            if(this.whenTime(60)){
+                sys.setTime(sys.roundTime*60)
+            }
+            if(this.whileTime(0)){
+                for(let i=0;i<sys.enemys.length;i++){
+                    if(this.repeat % sys.enemys[i].spawnRate != 0){continue}
+                    const e = sys.enemys[i]
+                    gm.spawnEnemy(pos(getRandom(60,GS-60),-60),e)
+                }
+                if(sys.timer <= 0){
+                    gm.killAll()
+                    gm.endAllRoutine()
+                }
+            }
+        })
+        // gm.startRound()
     }
 }
 
@@ -1410,12 +1591,14 @@ export class GameManager extends SceneObject {
         this.itemsLayer = new Container()
         this.bulletLayer = new Container()
 
-        this.efcLayer1 = new Container()
-        this.efcLayer2 = new Container()
-        this.efcLayer3 = new Container()
+        this.efcEnemyUnder = new Container()
+        this.efcBulletAbove = new Container()
+
+        this.ui = new GameUI()
+        this.effectBox = new EffectPlayBox()
 
         this.addUpdate(this.bullets, this.enemys, this.effects, this.items)
-        this.gameLayer.addChild(this.efcLayer1,this.efcLayer2,this.enemyLayer, this.playLayer, this.itemsLayer, this.bulletLayer, this.efcLayer3)
+        this.gameLayer.addChild(this.efcEnemyUnder,this.enemyLayer, this.playLayer, this.itemsLayer, this.bulletLayer, this.efcBulletAbove)
 
         this.gameBackGround = new Container()
         this.backGround = Img.sprite('rect', [gameData.resolution[0], gameData.resolution[1]], 'rgb(26, 26, 26)',{anchor:0})
@@ -1426,15 +1609,13 @@ export class GameManager extends SceneObject {
         this.gameBackGround.setMask({ mask: this.playGround, inverse: true })
         this.addChild(this.gameBackGround, this.playGround)
 
-        this.ui = new GameUI()
         this.addChild(this.ui)
+
 
         this.dialog = new GameDialog()
         this.addChild(this.dialog)
 
         this.showHitCircle = false
-
-        this.timer = 0
     }
 
     getBullets(){
@@ -1443,6 +1624,7 @@ export class GameManager extends SceneObject {
 
     init() {
         this.ui.init()
+        this.effectBox.init()
         this.dialog.init()
         this.player = new Player()
         this.addUpdate(this.player)
@@ -1456,19 +1638,23 @@ export class GameManager extends SceneObject {
                 ...option
             }
             this.stage = Data.stages[this.session.stageId]
-            this.startStage()
+            this.startGame()
         }
     }
 
-    startStage() {
-        const r = new StageRoutine();
-        r.tag = "stage";
-        r.self = this
-        r.route = this.stage.update
-        this.routes.push(r);
-
+    startGame() {
+        sys.startRound()
         Rnd.init()
     }
+
+    // startRound(){
+    //     this.endAllRoutine(true)
+    //     const r = new StageRoutine();
+    //     r.tag = "stage";
+    //     r.self = this
+    //     r.route = this.stage.update
+    //     this.routes.push(r);
+    // }
 
     spawnBullet(data, color, pos) {
         const bullet = new Bullet()
@@ -1563,33 +1749,16 @@ export class GameManager extends SceneObject {
             if(enemy.health <= 0){continue}
             enemy.kill()
         }
-        this.stopTimer()
     }
 
-    startTimer(value){
-        this.timer = value*60
-    }
-    stopTimer(){
-        this.timer = 0
-        this.ui.updateTimer()
-    }
 
     subUpdate(){
-        if(this.timer > 0){
-            this.timer--;
-            if(this.timer < 600 && this.timer % 60 == 0){
-                Am.playSFX("timer")
-            }
-            if(this.timer == 0){
-                this.killAll()
-            }
-            this.ui.updateTimer()
-        }
     }
 
 
     update() {
         super.update()
+        sys.update()
         this.subUpdate()
         this.ui.update()
         this.dialog.update()
@@ -1600,5 +1769,5 @@ export class GameManager extends SceneObject {
 }
 
 
-
+window.sys = new SystemManager()
 window.gm = new GameManager()

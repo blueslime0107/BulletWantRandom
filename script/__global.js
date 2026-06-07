@@ -2,6 +2,9 @@
 /**@type {import("./sceneMainGame").GameManager}*/
 var gm
 
+/**@type {import("./sceneMainGame").SystemManager}*/
+var sys
+
 var GS = gameData.gameArea.width; // Game Size
 var GX = gameData.gameArea.x;
 var GY = gameData.gameArea.y;

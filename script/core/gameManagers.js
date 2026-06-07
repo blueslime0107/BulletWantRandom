@@ -736,6 +736,7 @@ export class AudioManager {
 
   // 🔊 SFX 재생 (동기 호출 가능, 중복 방지 + 항상 새로 시작)
   playSFX(name) {
+    if(gameData.noAudio){return}
     (async () => {
       // 버퍼 준비
       if (!this.sfxBuffers[name]) {

@@ -17,7 +17,7 @@ export const stage = {
         }
         // 스테이지 알람
         if(this.whenTime(120)){
-            gm.spawnEffect(EFC.stageAlert,gm.efcLayer3,pos(340,200),{stageId:1,color: "#26bafa", location: "눈꽃 정원"})
+            gm.spawnEffect(EFC.stageAlert,gm.efcBulletAbove,pos(340,200),{stageId:1,color: "#26bafa", location: "눈꽃 정원"})
         }
         // 구간2
         this.whenTime(180)
