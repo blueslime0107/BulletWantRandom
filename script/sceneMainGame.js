@@ -572,16 +572,22 @@ class Lazer extends GameObject {
 }
 
 class BentLazer extends ShotObject {
-    constructor(color, length, width = 64) {
+    constructor(pos, color, length, width) {
         super()
+        this.set(pos.x, pos.y)
+        this.startPos = pos
+
         this.bullets = []
         this.color = color
         this.length = length
-        this.lazerRoutine = null
-        this.spawnEnded = false
+        this._frame = 0
+        this.posHistory = []
+        this.initMesh(width)
+    }
 
+    initMesh(width){
         this.lazerPoints = [new PIXI.Point(this.x, this.y), new PIXI.Point(this.x, this.y)]
-        this.lazerWidth = width
+        this.lazerWidth = width + 24
         this.lazerMesh = new PIXI.MeshRope({
             texture: Textures.bulletBentLazer[this.color],
             points: this.lazerPoints,
@@ -592,23 +598,9 @@ class BentLazer extends ShotObject {
             this.lazerMesh.geometry._width = this.lazerWidth
             this.lazerMesh.geometry.update()
         }
-        this.lazerMesh.alpha = 0.9
-        this.lazerMesh.visible = false
+        // this.lazerMesh.alpha = 0.9/
+        // this.lazerMesh.visible = false
         gm.bulletLayer.addChild(this.lazerMesh)
-
-        this.startRoutine("lazer",function(self){
-            if(this.whileFrame(self.length)){
-                const bullet = gm.spawnBullet("spear",self.color,self)
-                bullet.baseSprite.alpha = 0
-                if(self.lazerRoutine){
-                    bullet.startRoutine("",self.lazerRoutine)
-                }
-                self.bullets.push(bullet)
-            }
-            if(this.whenTime(0)){
-                self.spawnEnded = true
-            }
-        })
     }
 
     setScale(scale){
@@ -622,8 +614,29 @@ class BentLazer extends ShotObject {
     update(){
         super.update()
 
+        this.posHistory.push(this.pos)
+        if(this.posHistory.length > this.length){
+            this.posHistory.shift()
+        }
+
+        if(this._frame < this.length){
+            const bullet = gm.spawnBullet(BData.circle,this.color,this.startPos)
+            bullet.baseSprite.visible = false
+            this.bullets.push(bullet)
+            this._frame++
+        }
+
         // 이미 제거된 탄은 연결 목록에서 제외
         this.bullets = this.bullets.filter(bullet => !bullet._killed)
+        while(this.bullets.length > this.posHistory.length){
+            this.bullets.shift().die()
+        }
+
+        for(let i = 0; i < this.bullets.length; i++){
+            const bullet = this.bullets[i]
+            const targetPos = this.posHistory[i]
+            bullet.set(targetPos)
+        }
 
         const count = this.bullets.length
         if(count < 2){
@@ -646,7 +659,7 @@ class BentLazer extends ShotObject {
             this.lazerMesh.visible = true
         }
 
-        if(this.spawnEnded && count === 0){
+        if(this._frame >= this.length && this.bullets.length == 0){
             this.die()
         }
     }
@@ -660,8 +673,12 @@ class BentLazer extends ShotObject {
     }
 
     kill(){
-        this.spawnEnded = true
-        this.endAllRoutine(true)
+        this._frame = this.length
+        for(let i = 0; i < this.bullets.length; i++){
+            this.bullets[i].die()
+        }
+        this.bullets.length = 0
+        this.posHistory.length = 0
         this.die()
     }
 }
@@ -1442,8 +1459,7 @@ export class GameManager extends SceneObject {
         return lazer
     }
     spawnBentLazer(color, pos, length, width = 32){
-        const bentLazer = new BentLazer(color, length, width)
-        bentLazer.position.set(pos.x, pos.y)
+        const bentLazer = new BentLazer(pos, color, length, width)
         this.bullets.addObject(bentLazer) // 오브젝트 업데이트
         return bentLazer
     }

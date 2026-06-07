@@ -2,10 +2,17 @@
 export const stage = {
     name: 'stage1',
     update: function () {
-        if(this.whenTime(0)){
-            gm.spawnEnemy(pos(getRandom(60,GS-60),-60),/*enemyArcaive[eArcaiveKeys[getRandom(0,eArcaiveKeys.length)]]*/enemyArcaive.growingBullet)
-        }
+        // if(this.whenTime(0)){
+        //     gm.spawnEnemy(pos(getRandom(60,GS-60),-60),enemyArcaive[eArcaiveKeys[getRandom(0,eArcaiveKeys.length)]])
+        // }
         // if(this.whenTime(10)){
+        //     this.currentLine = 0
+        // }
+
+        if(this.whenTime(0)){
+            gm.spawnEnemy(pos(getRandom(60,GS-60),-60),enemyArcaive.redLazer)
+        }
+        // if(this.whenTime(60)){
         //     this.currentLine = 0
         // }
     }
@@ -28,6 +35,18 @@ const enemyArcaive = {
         spell: function (self) {
             if(this.whenTime(0)){
                 self.MoveDir(90,2)
+            }
+        }
+    },
+    redLazer: {
+        enemy: "snake1",
+        health: 10,
+        spell: function (self) {
+            if(this.whenTime(0)){
+                self.MoveDir(90,2)
+            }
+            if(this.whenTime(0)){
+                gm.spawnBentLazer(0,self,10).MoveDir(lookPoint(self,gm.player),6)
             }
         }
     },
