@@ -1,31 +1,22 @@
 const enemyArcaive = {
     rush: {
         enemy: "slime1",
-        health: 5,
-        blue: 2,
+        health: 1,
+        blue: 10,
         red: 0,
-        spawnRate: 30,
+        spawnRate: 60,
         spell: function (self) {
             if(this.whenTime(0)){
                 self.MoveDir(lookPoint(self,gm.player),4)
             }
         }
     },
-    normal: {
-        enemy: "butterfly1",
-        health: 5,
-        spell: function (self) {
-            if(this.whenTime(0)){
-                self.MoveDir(90,2)
-            }
-        }
-    },
     smallBullet: {
         enemy: "butterfly2",
-        health: 5,
-        blue: 2,
-        red: 2,
-        spawnRate: 60,
+        health: 3,
+        blue: 0,
+        red: 1,
+        spawnRate: 117,
         spell: function (self) {
             if(this.whenTime(0)){
                 self.MoveDir(90,2)

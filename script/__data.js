@@ -135,6 +135,15 @@ const gameTxtsty = {
             width: 5
         }
     },
+    enemyBlockText: {
+        fontFamily: 'Cafe24Ohsquare',
+        fontSize: 36,
+        fill: 'rgb(255,255,255)',
+        stroke: {
+            color: 'rgba(0, 0, 0, 1)',
+            width: 5
+        }
+    },
     stageTitle: {
         langId: 1,
         fontSize: 72,

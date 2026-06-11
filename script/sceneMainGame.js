@@ -1293,6 +1293,104 @@ class GameDialog extends GameObject {
   }
 }
 
+
+class EffectPlayBox {
+    constructor(){
+    }
+    
+    init(){
+        this.initRoundAlert()
+    }
+
+    initRoundAlert(){
+        this.roundAlertObject = new GameObject()
+        gm.efcEnemyUnder.addChild(this.roundAlertObject)
+        this.roundAlertText = new Text({
+            text: "ROUND 01",
+            style: new TextStyle({
+                fontFamily: 'Cafe24Ohsquare',
+                fontSize: 72,
+                fill: 'rgb(255, 255, 255)'
+            }),
+            anchor: 0.5
+        })
+        this.roundAlertObject.addChild(this.roundAlertText)
+        gm.addUpdate(this.roundAlertObject)
+    }
+
+    roundAlert(num){
+        this.roundAlertText.text = `ROUND ${String(num).padStart(2,'0')}`
+        this.roundAlertObject.startRoutine("roundAlert", function(self){
+            if(this.whenTime(0)){
+                self.set(GS,GS*0.5)
+                self.MoveTime(pos(GS*0.5,GS*0.5), 30, Easing.easeOutCubic)
+            }
+            if(this.whenTime(60)){
+                self.MoveTime(pos(-200,GS*0.5), 30, Easing.easeOutCubic)
+            }
+        })
+    }
+}
+
+class GameUIEnemyBlock extends GameObject {
+    constructor(props){
+        super(props)
+        this.outLine = Img.sprite('rect', [180,80], 'rgba(255, 255, 255, 1)')
+        this.inBase = Img.sprite('rect', [175, 75], 'rgb(0, 0, 0)')
+        this.enemyImage = new Sprite({anchor:0.5,position:{x:-50,y:0}})
+        this.hpText = new Text({
+            text:'0',
+            style: Data.styles.enemyBlockText,
+            tint: 'rgb(255, 118, 118)',
+            position: {x:-15,y:-45},
+        })
+        this.blueText = new Text({
+            text:'0',
+            style: Data.styles.enemyBlockText,
+            tint: 'rgb(69, 97, 255)',
+            position: {x:-15,y:-12}
+        })
+        this.redText = new Text({
+            text:'0',
+            style: Data.styles.enemyBlockText,
+            tint: 'rgb(255, 57, 57)',
+            position: {x:30,y:-12}
+        })
+        this.crossText = new Text({
+            text:'x',
+            style: Data.styles.enemyBlockText,
+            scale: 0.5,
+            position: {x:27,y:0}
+        })
+        this.spawnRate = new Container({position:{x:50,y:40}})
+        this.sROutline = Img.sprite('rect', [20, 80], 'rgba(255, 255, 255, 1)',{anchor:{x:0.5,y:1},position:{x:50,y:0}})
+        this.sRInBase = Img.sprite('rect', [15, 75], 'rgb(0, 0, 0)',{anchor:{x:0.5,y:1},position:{x:50,y:-2.5}})
+        this.sRInBaseGague = Img.sprite('rect', [15, 75], 'rgb(109, 109, 109)',{anchor:{x:0.5,y:1},position:{x:50,y:-2.5}})
+        this.spawnRate.addChild(this.sROutline, this.sRInBase, this.sRInBaseGague)
+        this.addChild(this.outLine, this.inBase, this.enemyImage, this.hpText, this.blueText, this.redText, this.crossText, this.spawnRate)
+
+        this.frame = 0
+    }
+
+    updateData(data){
+        this.data = data
+        this.blueText.text = String(data.blue)
+        this.redText.text = String(data.red)
+        this.hpText.text = String(data.health)
+
+        const enemyTexture = Textures[EData[data.enemy].texture][0]
+        this.enemyImage.texture = enemyTexture
+        this.enemyImage.width = 65
+        this.enemyImage.height = 65
+    }
+
+    update(){
+        super.update()
+        this.frame++
+        this.angle = Graph.sin(this.frame, -0.5,0.5,60)
+    }
+}
+
 class GameUI extends Container{
     constructor(){
         super()
@@ -1301,7 +1399,14 @@ class GameUI extends Container{
 
     init(){
         this.removeChildren()
+        this._initSideUI()
+        this._initLeftSide()
+        this._initPlayerAreaUI()
 
+        this.updateBossHealth()
+    }
+
+    _initSideUI(){
         this.textStyle = new TextStyle({
             fontFamily: 'Cafe24Ohsquare',
             fontSize: 36,
@@ -1334,7 +1439,18 @@ class GameUI extends Container{
             child.y = GY + 20 + stack
             stack += [40,60,40,60,40,40,60,40][i]
         }
+    }
 
+    _initLeftSide(){
+        this.leftSide = new Container({
+            position: {x:GX*0.5,y:GY+20}
+        })
+        this.enemyBlocks = new GameObjectGroup()
+        this.addChild(this.leftSide)
+        gm.addUpdate(this.enemyBlocks)
+    }
+
+    _initPlayerAreaUI(){
         this.bossHealth = new GagueBar({
             size:[GS-80, 15],
             background: 'rgba(0, 0, 0, 0)',
@@ -1385,13 +1501,23 @@ class GameUI extends Container{
             text: "00",
             style: this.textStyle,
             position:{x:GCX,y:GY-4},
-            scale: 1,
+            scale: 0.5,
             tint:'rgb(255, 255, 255)',
+            anchor: 0.5,
             visible: false
         })
         this.addChild(this.timer)
 
-        this.updateBossHealth()
+        this.phazeTimer = new Text({
+            text: "00",
+            style: this.textStyle,
+            position:{x:GCX,y:GY+28},
+            scale: 1,
+            tint:'rgb(255, 176, 216)',
+            visible: false,
+            anchor: 0.5
+        })
+        this.addChild(this.phazeTimer)
     }
 
     update(){
@@ -1419,61 +1545,68 @@ class GameUI extends Container{
     updateTimer(){
         this.timer.visible = sys.timer > 0
         this.timer.text = String(Math.ceil(sys.timer / 60)).padStart(2,'0')
-    }
-}
-
-class EffectPlayBox {
-    constructor(){
-    }
-    
-    init(){
-        this.initRoundAlert()
+        
+        const phazeTimeFrames = sys.phazeTime * 60
+        const timeInCurrentPhaze = sys.timer % phazeTimeFrames
+        const phazeTimeLeft = timeInCurrentPhaze === 0 ? sys.phazeTime : Math.ceil(timeInCurrentPhaze / 60)
+        this.phazeTimer.visible = sys.timer > 0
+        this.phazeTimer.text = String(phazeTimeLeft).padStart(2,'0')
     }
 
-    initRoundAlert(){
-        this.roundAlertObject = new GameObject()
-        gm.efcEnemyUnder.addChild(this.roundAlertObject)
-        this.roundAlertText = new Text({
-            text: "ROUND 01",
-            style: new TextStyle({
-                fontFamily: 'Cafe24Ohsquare',
-                fontSize: 72,
-                fill: 'rgb(255, 255, 255)'
-            }),
-            anchor: 0.5
-        })
-        this.roundAlertObject.addChild(this.roundAlertText)
-        gm.addUpdate(this.roundAlertObject)
-    }
-
-    roundAlert(num){
-        this.roundAlertText.text = `ROUND ${String(num).padStart(2,'0')}`
-        this.roundAlertObject.startRoutine("roundAlert", function(self){
-            if(this.whenTime(0)){
-                self.set(GS,GS*0.5)
-                self.MoveTime(pos(GS*0.5,GS*0.5), 30, Easing.easeOutCubic)
+    updateEnemyblockData(){
+        for(let i=0;i<sys.enemys.length;i++){
+            const enemy = sys.enemys[i]
+            if(this.enemyBlocks.length <= i){
+                const b = new GameUIEnemyBlock()
+                this.enemyBlocks.addObject(b)
+                this.leftSide.addChild(b)
             }
-            if(this.whenTime(60)){
-                self.MoveTime(pos(-200,GS*0.5), 30, Easing.easeOutCubic)
-            }
-        })
+            const block = this.enemyBlocks[i]
+            block.updateData(enemy)
+        }
+        const maxHeight = Math.min(GS - 100, sys.enemys.length * 90)
+        for(let i=0;i<this.enemyBlocks.length;i++){
+            const block = this.enemyBlocks[i]
+            block.position.y = i*(maxHeight / this.enemyBlocks.length) + 45
+        }
+    }
+    updateEnemyblockSpawnRate(frame){
+        for(let i=0;i<this.enemyBlocks.length;i++){
+            const block = this.enemyBlocks[i]
+            block.sRInBaseGague.height = 75 * ((frame % sys.enemys[i].spawnRate) / sys.enemys[i].spawnRate)
+        }
     }
 }
 
 export class SystemManager {
     constructor(){
         this.round = 0
-        this.goalScore = 2000
+        this.goalScore = 0
 
         this._blueScore = 0
         this._redScore = 1
+        this._score = 0
         this.totalScore = 0
 
-        this.roundTime = 120
+        this.phazeTime = 30
+        this.phazeCount = 4
+        this.phaze = 0
+        this.roundTime = 0
+
 
         this.timer = 0
 
+
         this.enemys = [ ]
+    }
+
+    set score(value){
+        this._score = value
+        gm.ui.curScore.text = String(this._score)
+    }
+
+    get score(){
+        return this._score
     }
 
     set blueScore(value){
@@ -1518,6 +1651,11 @@ export class SystemManager {
         gm.ui.updateTimer()
     }
 
+    setGoalScore(value){
+        this.goalScore = value
+        gm.ui.goalScore.text = String(this.goalScore)
+    }
+
     addEnemy(data){
         // 복사해 저장
         const enemy = {
@@ -1529,39 +1667,70 @@ export class SystemManager {
             spell: data.spell
         }
         this.enemys.push(enemy)
+        gm.ui.updateEnemyblockData()
     }
 
     firstRound(){
         this.addEnemy(enemyArcaive.rush)
         this.addEnemy(enemyArcaive.smallBullet)
+        this.setGoalScore(5000)
+        this.round = 1
     }
 
     startRound(){
         if(this.round == 0){
             this.firstRound()
         }
-        this.round++
         gm.endAllRoutine(true)
         gm.startRoutine("round",function(){
             if(this.whenTime(0)){
-                gm.effectBox.roundAlert(1)
+                sys.beforeStage()
             }
             if(this.whenTime(60)){
                 sys.setTime(sys.roundTime*60)
             }
             if(this.whileTime(0)){
+                gm.ui.updateEnemyblockSpawnRate(this.repeat)
                 for(let i=0;i<sys.enemys.length;i++){
                     if(this.repeat % sys.enemys[i].spawnRate != 0){continue}
                     const e = sys.enemys[i]
                     gm.spawnEnemy(pos(getRandom(60,GS-60),-60),e)
                 }
+                if(sys.timer <= sys.phazeTime * 60 * (sys.phaze - 1)){
+                    sys.phazeEnd()
+                }
                 if(sys.timer <= 0){
-                    gm.killAll()
-                    gm.endAllRoutine()
+                    sys.roundEnd()
                 }
             }
         })
         // gm.startRound()
+    }
+
+    beforeStage(){
+        gm.effectBox.roundAlert(this.round)
+        this.roundTime = this.phazeTime * this.phazeCount
+        this.phaze = this.phazeCount
+        this.score = 0
+    }
+
+    phazeEnd(){
+        gm.killAll()
+        this.score += this.totalScore
+        this.blueScore = 0
+        this.redScore = 1
+        this.phaze--
+        if(this.score > this.goalScore){
+            this.roundEnd()
+        }
+    }
+
+    roundEnd(){
+        gm.killAll()
+        gm.endAllRoutine()
+        this.round++
+        this.setGoalScore(Math.floor(this.goalScore * 1.5))
+        this.startRound() // 다음 라운드 시작
     }
 }
 
