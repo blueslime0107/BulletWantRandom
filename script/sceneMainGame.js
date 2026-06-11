@@ -886,8 +886,8 @@ class Player extends GameObject {
 
     reset(){
         this.position.set(GS * 0.5, GS * 0.75)
-        this.shotSubDelay = 30
-        this.shotMainDelay = 10
+        this.shotSubDelay = 10
+        this.shotMainDelay = 2
         this.shotCount = 0
         this.godMode = false
         this.shotAble = true
@@ -1673,6 +1673,14 @@ export class SystemManager {
     firstRound(){
         this.addEnemy(enemyArcaive.rush)
         this.addEnemy(enemyArcaive.smallBullet)
+        this.addEnemy(enemyArcaive.bomb1)
+        this.addEnemy(enemyArcaive.bomb2)
+        this.addEnemy(enemyArcaive.electricRush)
+        this.addEnemy(enemyArcaive.electricRush2)
+        this.addEnemy(enemyArcaive.growingBullet)
+        this.addEnemy(enemyArcaive.homingBullet)
+        this.addEnemy(enemyArcaive.orangeLazer)
+        this.addEnemy(enemyArcaive.redLazer)
         this.setGoalScore(5000)
         this.round = 1
     }

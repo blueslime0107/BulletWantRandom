@@ -30,7 +30,10 @@ const enemyArcaive = {
     },
     redLazer: {
         enemy: "snake1",
-        health: 5,
+        health: 2,
+        blue: 2,
+        red: 3,
+        spawnRate: 40,
         spell: function (self) {
             if(this.whenTime(0)){
                 self.MoveDir(90,2)
@@ -59,6 +62,9 @@ const enemyArcaive = {
     orangeLazer: {
         enemy: "snake1",
         health: 5,
+        blue: 2,
+        red: 3,
+        spawnRate: 120,
         spell: function (self) {
             if(this.whenTime(0)){
                 self.MoveDirSpdEase(90,10,0,30,Easing.linear)
@@ -79,7 +85,10 @@ const enemyArcaive = {
     },
     growingBullet: {
         enemy: "bird1",
-        health: 5,
+        health: 2,
+        blue: 2,
+        red: 3,
+        spawnRate: 80,
         spell: function (self) {
             if(this.whenTime(0)){
                 self.MoveDir(90,2)
@@ -98,7 +107,10 @@ const enemyArcaive = {
     },
     homingBullet: {
         enemy: "bird1",
-        health: 5,
+        health: 2,
+        blue: 2,
+        red: 3,
+        spawnRate: 74,
         spell: function (self) {
             if(this.whenTime(0)){
                 self.MoveDirSpdEase(90,10,0,30,Easing.linear)
@@ -122,7 +134,10 @@ const enemyArcaive = {
     },
     electricRush: {
         enemy: "snake1",
-        health: 10,
+        health: 2,
+        blue: 2,
+        red: 3,
+        spawnRate: 88,
         spell: function (self) {
             if(this.whenTime(0)){
                 self.MoveDir(getRandom(-4,4)+90,4)
@@ -138,7 +153,10 @@ const enemyArcaive = {
     },
     electricRush2: {
         enemy: "butterfly2",
-        health: 10,
+        health: 2,
+        blue: 2,
+        red: 3,
+        spawnRate: 77,
         spell: function (self) {
             if(this.whenTime(0)){
                 self.MoveDir(getRandom(-4,4)+90,4)
@@ -155,7 +173,10 @@ const enemyArcaive = {
     },
     bomb1: {
         enemy: "slime1",
-        health: 5,
+        health: 2,
+        blue: 2,
+        red: 3,
+        spawnRate: 62,
         spell: function (self) {
             if(this.whenTime(0)){
                 self.MoveDir(getRandom(-4,4)+90,4)
@@ -176,7 +197,10 @@ const enemyArcaive = {
     },
     bomb2: {
         enemy: "slime1",
-        health: 5,
+        health: 2,
+        blue: 2,
+        red: 3,
+        spawnRate: 87,
         spell: function (self) {
             if(this.whenTime(0)){
                 self.MoveDir(getRandom(-4,4)+90,4)
@@ -187,7 +211,7 @@ const enemyArcaive = {
                         this.list = []
                         const rnd = getRandomList([0,45])
                         for(let i=0;i<360;i+=90){
-                            this.list.push(gm.spawnLazer(BData.lazer,1,self.pos,goAngle(self.pos,i+rnd,300),60,60))
+                            this.list.push(gm.spawnLazer(BData.spear,1,self.pos,goAngle(self.pos,i+rnd,300),60,60))
                         }
                     }
                     if(this.whileTime(0,this.repeat < 60)){
