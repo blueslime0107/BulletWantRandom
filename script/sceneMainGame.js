@@ -474,6 +474,7 @@ class Lazer extends GameObject {
         this.setLazer(data.shape,data.color)
         // _render가 매 프레임 _width를 texture.height로 덮어쓰므로 onRender 교체
         this.lazerMesh.onRender = () => {
+            if(!this.lazerMesh){return}
             this.lazerMesh.geometry._width = this.lazerWidth
             this.lazerMesh.geometry.update()
         }
@@ -640,6 +641,7 @@ class BentLazer extends ShotObject {
         })
         // _render가 매 프레임 _width를 texture.height로 덮어쓰므로 onRender 교체
         this.lazerMesh.onRender = () => {
+            if(!this.lazerMesh){return}
             this.lazerMesh.geometry._width = this.lazerWidth
             this.lazerMesh.geometry.update()
         }
@@ -858,16 +860,16 @@ class Player extends GameObject {
 
         this.options = new GameObjectGroup()
         this.addUpdate(this.options)
-        for(let i=0;i<4;i++){
-            const option = new PlayerOption()
-            option.startRoutine("option",function(self){
-                if(this.whenTime(0)){
-                    self.MoveTime(goAngle(posZero,i*80-210,70),20,Easing.easeOutSine)
-                }
-            })
-            this.options.addObject(option)
-            this.addChild(option)
-        }
+        // for(let i=0;i<4;i++){
+        //     const option = new PlayerOption()
+        //     option.startRoutine("option",function(self){
+        //         if(this.whenTime(0)){
+        //             self.MoveTime(goAngle(posZero,i*80-210,70),20,Easing.easeOutSine)
+        //         }
+        //     })
+        //     this.options.push(option)
+        //     this.addChild(option)
+        // }
 
         
         this.shots = new GameObjectGroup()
@@ -887,7 +889,7 @@ class Player extends GameObject {
     reset(){
         this.position.set(GS * 0.5, GS * 0.75)
         this.shotSubDelay = 10
-        this.shotMainDelay = 2
+        this.shotMainDelay = 10
         this.shotCount = 0
         this.godMode = false
         this.shotAble = true
@@ -1016,7 +1018,7 @@ class Player extends GameObject {
     spawnShot(sprite,pos){
         const shot = new PlayerShot(sprite)
         shot.set(pos)
-        this.shots.addObject(shot)
+        this.shots.push(shot)
         gm.playLayer.addChild(shot)
         return shot
     }
@@ -1318,8 +1320,8 @@ class EffectPlayBox {
         gm.addUpdate(this.roundAlertObject)
     }
 
-    roundAlert(num){
-        this.roundAlertText.text = `ROUND ${String(num).padStart(2,'0')}`
+    stageAlert(num){
+        this.roundAlertText.text = `Stage ${String(num).padStart(2,'0')}`
         this.roundAlertObject.startRoutine("roundAlert", function(self){
             if(this.whenTime(0)){
                 self.set(GS,GS*0.5)
@@ -1391,16 +1393,23 @@ class GameUIEnemyBlock extends GameObject {
     }
 }
 
-class GameUI extends Container{
+class GameUI extends GameObject{
     constructor(){
         super()
         this.spellCount = 0
+    }
+
+    reset(){
+        this.updateEnemyblockData()
+        this.updateEnemyblockSpawnRate(0)
+        this.hideShop()
     }
 
     init(){
         this.removeChildren()
         this._initSideUI()
         this._initLeftSide()
+        this._initShop()
         this._initPlayerAreaUI()
 
         this.updateBossHealth()
@@ -1448,6 +1457,129 @@ class GameUI extends Container{
         this.enemyBlocks = new GameObjectGroup()
         this.addChild(this.leftSide)
         gm.addUpdate(this.enemyBlocks)
+    }
+
+    _initShop(){
+        this.shopContainer = new Container({
+            position: {x: GX, y: GY}
+        })
+        this.shopButtons = new GameObjectGroup()
+
+        const addButton = (obj) => {
+            this.shopContainer.addChild(obj)
+            this.shopButtons.push(obj)
+        }
+
+        this.shopGroup = new InputUIGroup({ curIndex: 0, skipNotAvailableUI: true });
+
+        const enemyBtnData = {
+            id: 0,
+            touchArea: {width:220,height:80},
+            onHighlight: function(isActive){
+                this.SetValueObj(this.scale,'x',isActive ? [1,1.08] : [1.08,1],10,Easing.easeOutCubic)
+                this.SetValueObj(this.scale,'y',isActive ? [1,1.08] : [1.08,1],10,Easing.easeOutCubic)
+            },
+            onPress: function(){
+                sys.addEnemy(this.data)
+                this.toggleValiable(false)
+            },
+            onToggle: function(toggle){
+                this.alpha = toggle ? 1 : 0.5
+            },
+            scale: {x:0,y:1}
+        }
+
+        this.enemyLeft = new Button({...enemyBtnData, position: {x:150,y:74}, id:0});
+        this.enemyLeft.baseSprite = new GameUIEnemyBlock({scale: 1.5})
+        this.enemyLeft.addChild(this.enemyLeft.baseSprite)
+        addButton(this.enemyLeft)
+        this.shopGroup.addItem(this.enemyLeft,{
+            RIGHT: () => { this.shopGroup.setItem(1) },
+            DOWN: () => { this.shopGroup.setItem(2) }
+        })
+
+        
+        this.enemyRight = new Button({...enemyBtnData, position: {x:500,y:74}, id:1});
+        this.enemyRight.baseSprite = new GameUIEnemyBlock({scale: 1.5})
+        this.enemyRight.addChild(this.enemyRight.baseSprite)
+        addButton(this.enemyRight)
+        this.shopGroup.addItem(this.enemyRight,{
+            LEFT: () => { this.shopGroup.setItem(0) },
+            DOWN: () => { this.shopGroup.setItem(5) }
+        })
+
+        const itemBtnList = () => {
+            const list = []
+            for(let i=0;i<4;i++){
+                const btn = new Button({
+                    id: 0,
+                    touchArea: {width:120,height:120},
+                    onHighlight: function(isActive){
+                        this.SetValueObj(this.scale,'x',isActive ? [1,1.08] : [1.08,1],10,Easing.easeOutCubic)
+                        this.SetValueObj(this.scale,'y',isActive ? [1,1.08] : [1.08,1],10,Easing.easeOutCubic)
+                    },
+                    onPress: () => {
+                        // entry.onPress();
+                    },
+                    scale: {x:0,y:1}
+                });
+                const sprite = Img.sprite('rect',120,'rgba(0,0,255,1)',{anchor:0.5})
+                btn.addChild(sprite)
+        
+                addButton(btn)
+                list.push(btn)
+            }
+            return list
+        }
+        this.enemyItemBtns = itemBtnList()
+        for(let i=0;i<this.enemyItemBtns.length;i++){ 
+            this.enemyItemBtns[i].id = i+2
+            this.enemyItemBtns[i].set(170 * i + 85, 220)        
+            this.shopGroup.addItem(this.enemyItemBtns[i])
+        }
+        this.playerItemBtns = itemBtnList()
+        for(let i=0;i<this.playerItemBtns.length;i++){ 
+            this.playerItemBtns[i].id = i+6
+            this.playerItemBtns[i].set(170 * i + 85, 370)       
+            this.shopGroup.addItem(this.enemyItemBtns[i])
+        }
+
+        this.rerollBtn = new Button({
+            id: 10,
+            touchArea: {width:150,height:120},
+            onHighlight: function(isActive){
+                this.SetValueObj(this.scale,'x',isActive ? [1,1.08] : [1.08,1],10,Easing.easeOutCubic)
+                this.SetValueObj(this.scale,'y',isActive ? [1,1.08] : [1.08,1],10,Easing.easeOutCubic)
+            },
+            onPress: () => {
+                // entry.onPress();
+            },
+            position: {x: 170, y:550},
+            scale: {x:0,y:1}
+        });
+        this.rerollBtn.addChild(Img.sprite('rect',[150,120],'rgba(0,0,255,1)',{anchor:0.5}))       
+        this.shopGroup.addItem(this.rerollBtn)
+        addButton(this.rerollBtn)
+
+        this.continueBtn = new Button({
+            id: 11,
+            touchArea: {width:150,height:120},
+            onHighlight: function(isActive){
+                this.SetValueObj(this.scale,'x',isActive ? [1,1.08] : [1.08,1],10,Easing.easeOutCubic)
+                this.SetValueObj(this.scale,'y',isActive ? [1,1.08] : [1.08,1],10,Easing.easeOutCubic)
+            },
+            onPress: () => {
+                sys.startRound()
+            },
+            position: {x: GS-170, y:550},
+            scale: {x:0,y:1}
+        });
+        this.continueBtn.addChild(Img.sprite('rect',[150,120],'rgba(0,0,255,1)',{anchor:0.5}))   
+        this.shopGroup.addItem(this.continueBtn)
+        addButton(this.continueBtn)
+
+        this.addChild(this.shopContainer)
+        gm.addUpdate(this.shopButtons)
     }
 
     _initPlayerAreaUI(){
@@ -1507,20 +1639,10 @@ class GameUI extends Container{
             visible: false
         })
         this.addChild(this.timer)
-
-        this.phazeTimer = new Text({
-            text: "00",
-            style: this.textStyle,
-            position:{x:GCX,y:GY+28},
-            scale: 1,
-            tint:'rgb(255, 176, 216)',
-            visible: false,
-            anchor: 0.5
-        })
-        this.addChild(this.phazeTimer)
     }
 
     update(){
+        super.update()
         if(gm.boss){
             this.bossBottomAlert.visible = true
             this.bossBottomAlert.x = gm.boss.x + GX
@@ -1545,20 +1667,18 @@ class GameUI extends Container{
     updateTimer(){
         this.timer.visible = sys.timer > 0
         this.timer.text = String(Math.ceil(sys.timer / 60)).padStart(2,'0')
-        
-        const phazeTimeFrames = sys.phazeTime * 60
-        const timeInCurrentPhaze = sys.timer % phazeTimeFrames
-        const phazeTimeLeft = timeInCurrentPhaze === 0 ? sys.phazeTime : Math.ceil(timeInCurrentPhaze / 60)
-        this.phazeTimer.visible = sys.timer > 0
-        this.phazeTimer.text = String(phazeTimeLeft).padStart(2,'0')
     }
 
     updateEnemyblockData(){
+        while(this.enemyBlocks.length > sys.enemys.length){
+            const block = this.enemyBlocks.pop()
+            this.leftSide.removeChild(block)
+        }
         for(let i=0;i<sys.enemys.length;i++){
             const enemy = sys.enemys[i]
             if(this.enemyBlocks.length <= i){
                 const b = new GameUIEnemyBlock()
-                this.enemyBlocks.addObject(b)
+                this.enemyBlocks.push(b)
                 this.leftSide.addChild(b)
             }
             const block = this.enemyBlocks[i]
@@ -1576,32 +1696,79 @@ class GameUI extends Container{
             block.sRInBaseGague.height = 75 * ((frame % sys.enemys[i].spawnRate) / sys.enemys[i].spawnRate)
         }
     }
+    openShop(){
+        this.endAllRoutine()
+        this.updateShopData()
+        this.startRoutine('open',function(self){
+            for(let i=0;i<self.shopButtons.length;i++){
+                if(this.whenTime(5)){
+                    self.SetValueObj(self.shopButtons[i].scale,'x',1,60,Easing.easeOutBack)
+                }
+            }
+            if(this.whenTime(20)){
+                gm.setInputGroup(self.shopGroup)
+            }
+        })
+    }
+    updateShopData(){
+        const data = sys.shopData
+        this.enemyLeft.baseSprite.updateData(data.leftEnemy)
+        this.enemyLeft.data = data.leftEnemy
+        this.enemyLeft.toggleValiable(true)
+        this.enemyRight.baseSprite.updateData(data.rightEnemy)
+        this.enemyRight.data = data.rightEnemy
+        this.enemyRight.toggleValiable(true)
+        // 아이템 업데이트는 나중에
+    }
+    hideShop(){
+        this.endAllRoutine()
+        gm.setInputGroup(null)
+        this.startRoutine('open',function(self){
+            for(let i=0;i<self.shopButtons.length;i++){
+                if(this.whenTime(5)){
+                    self.SetValueObj(self.shopButtons[i].scale,'x',0,60,Easing.easeOutCubic)
+                }
+            }
+        })
+    }
 }
 
 export class SystemManager {
     constructor(){
-        this.round = 0
-        this.goalScore = 0
-
         this._blueScore = 0
         this._redScore = 1
         this._score = 0
+        this.reset()
+    }
+
+    reset(){
+        this.stage = 0
+        this.goalScore = 0
+
+        this.blueScore = 0
+        this.redScore = 1
+        this.score = 0
         this.totalScore = 0
 
-        this.phazeTime = 30
-        this.phazeCount = 4
-        this.phaze = 0
-        this.roundTime = 0
+        this.roundTime = 30
+        this.roundCount = 4
+        this.round = 0
 
+        this.shopData = {
+            leftEnemy: '',
+            rightEnemy: '',
+            enemyItems: ['', '', '', ''],
+            playerItems: ['', '', '', '']
+        }
 
         this.timer = 0
-
-
+        
         this.enemys = [ ]
     }
 
     set score(value){
         this._score = value
+        if(!gm){return}
         gm.ui.curScore.text = String(this._score)
     }
 
@@ -1611,6 +1778,7 @@ export class SystemManager {
 
     set blueScore(value){
         this._blueScore = value
+        if(!gm){return}
         gm.ui.blueScore.text = String(this._blueScore)
         this.updateTotalScore()
     }
@@ -1621,6 +1789,7 @@ export class SystemManager {
 
     set redScore(value){
         this._redScore = value
+        if(!gm){return}
         gm.ui.redScore.text = String(this._redScore)
         this.updateTotalScore()
     }
@@ -1670,26 +1839,39 @@ export class SystemManager {
         gm.ui.updateEnemyblockData()
     }
 
-    firstRound(){
+    firstStage(){
         this.addEnemy(enemyArcaive.rush)
         this.addEnemy(enemyArcaive.smallBullet)
-        this.addEnemy(enemyArcaive.bomb1)
-        this.addEnemy(enemyArcaive.bomb2)
-        this.addEnemy(enemyArcaive.electricRush)
-        this.addEnemy(enemyArcaive.electricRush2)
-        this.addEnemy(enemyArcaive.growingBullet)
-        this.addEnemy(enemyArcaive.homingBullet)
-        this.addEnemy(enemyArcaive.orangeLazer)
-        this.addEnemy(enemyArcaive.redLazer)
+        // this.addEnemy(enemyArcaive.bomb1)
+        // this.addEnemy(enemyArcaive.bomb2)
+        // this.addEnemy(enemyArcaive.electricRush)
+        // this.addEnemy(enemyArcaive.electricRush2)
+        // this.addEnemy(enemyArcaive.growingBullet)
+        // this.addEnemy(enemyArcaive.homingBullet)
+        // this.addEnemy(enemyArcaive.orangeLazer)
+        // this.addEnemy(enemyArcaive.redLazer)
         this.setGoalScore(5000)
-        this.round = 1
+        this.stage = 1
+    }
+
+    startStage(){
+        if(this.stage == 0){
+            this.firstStage()
+        }
+        gm.endAllRoutine(true)
+        this.openShop()
+    }
+
+    openShop(){
+        this.shopData = {
+            leftEnemy: enemyArcaive[enemyArcaiveList[getRandom(0, enemyArcaiveList.length-1)]],
+            rightEnemy: enemyArcaive[enemyArcaiveList[getRandom(0, enemyArcaiveList.length-1)]]
+        }
+        gm.ui.openShop()
     }
 
     startRound(){
-        if(this.round == 0){
-            this.firstRound()
-        }
-        gm.endAllRoutine(true)
+        gm.ui.hideShop()
         gm.startRoutine("round",function(){
             if(this.whenTime(0)){
                 sys.beforeStage()
@@ -1697,48 +1879,46 @@ export class SystemManager {
             if(this.whenTime(60)){
                 sys.setTime(sys.roundTime*60)
             }
-            if(this.whileTime(0)){
+            if(this.whileTime(0,sys.timer > 0)){
                 gm.ui.updateEnemyblockSpawnRate(this.repeat)
                 for(let i=0;i<sys.enemys.length;i++){
                     if(this.repeat % sys.enemys[i].spawnRate != 0){continue}
                     const e = sys.enemys[i]
                     gm.spawnEnemy(pos(getRandom(60,GS-60),-60),e)
                 }
-                if(sys.timer <= sys.phazeTime * 60 * (sys.phaze - 1)){
-                    sys.phazeEnd()
-                }
-                if(sys.timer <= 0){
-                    sys.roundEnd()
-                }
+            }
+            if(this.whenTime(0)){
+                console.log("?")
+                sys.roundEnd()
             }
         })
-        // gm.startRound()
     }
 
     beforeStage(){
-        gm.effectBox.roundAlert(this.round)
-        this.roundTime = this.phazeTime * this.phazeCount
-        this.phaze = this.phazeCount
+        gm.effectBox.stageAlert(this.stage)
+        this.round = this.roundCount
         this.score = 0
-    }
-
-    phazeEnd(){
-        gm.killAll()
-        this.score += this.totalScore
-        this.blueScore = 0
-        this.redScore = 1
-        this.phaze--
-        if(this.score > this.goalScore){
-            this.roundEnd()
-        }
     }
 
     roundEnd(){
         gm.killAll()
+        this.score += this.totalScore
+        this.blueScore = 0
+        this.redScore = 1
+        this.round--
+        if(this.score > this.goalScore){
+            this.stageEnd()
+        }else{
+            this.startRound()
+        }
+    }
+
+    stageEnd(){
+        gm.killAll()
         gm.endAllRoutine()
-        this.round++
+        this.stage++
         this.setGoalScore(Math.floor(this.goalScore * 1.5))
-        this.startRound() // 다음 라운드 시작
+        this.startStage() // 다음 라운드 시작
     }
 }
 
@@ -1774,7 +1954,7 @@ export class GameManager extends SceneObject {
         this.ui = new GameUI()
         this.effectBox = new EffectPlayBox()
 
-        this.addUpdate(this.bullets, this.enemys, this.effects, this.items)
+        this.addUpdate(this.bullets, this.enemys, this.effects, this.items, this.ui)
         this.gameLayer.addChild(this.efcEnemyUnder,this.enemyLayer, this.playLayer, this.itemsLayer, this.bulletLayer, this.efcBulletAbove)
 
         this.gameBackGround = new Container()
@@ -1819,9 +1999,21 @@ export class GameManager extends SceneObject {
         }
     }
 
+    reset(){
+        for(let bullet of this.bullets){ bullet.die() }
+        for(let enemy of this.enemys){ enemy.die() }
+        for(let item of this.items){ item.die() }
+        if(this.boss){ this.boss.die() }
+        this.endAllRoutine(true)
+        this.ui.endAllRoutine(true)
+        sys.reset()
+        this.ui.reset()
+    }
+
     startGame() {
-        sys.startRound()
         Rnd.init()
+        this.reset()
+        sys.startStage()
     }
 
     // startRound(){
@@ -1838,7 +2030,7 @@ export class GameManager extends SceneObject {
         bullet.setBullet(data,color)
         bullet.set(pos.x, pos.y)
 
-        this.bullets.addObject(bullet) // 오브젝트 업데이트
+        this.bullets.push(bullet) // 오브젝트 업데이트
         this.bulletLayer.addChild(bullet) // 스프라이트 레이어
         return bullet
     }
@@ -1853,12 +2045,12 @@ export class GameManager extends SceneObject {
      */
     spawnLazer(shape, color, startPos, endPos, guideTime = 60, atkTime = 60) {
         const lazer = new Lazer({shape, color, startPos, endPos, guideTime, atkTime})
-        this.bullets.addObject(lazer) // 오브젝트 업데이트
+        this.bullets.push(lazer) // 오브젝트 업데이트
         return lazer
     }
     spawnBentLazer(color, pos, length, width = 32){
         const bentLazer = new BentLazer(pos, color, length, width)
-        this.bullets.addObject(bentLazer) // 오브젝트 업데이트
+        this.bullets.push(bentLazer) // 오브젝트 업데이트
         return bentLazer
     }
     spawnEnemy(pos, spell) {
@@ -1869,14 +2061,14 @@ export class GameManager extends SceneObject {
 
         // enemy.MoveDir(dir, speed)
 
-        this.enemys.addObject(enemy) // 오브젝트 업데이트
+        this.enemys.push(enemy) // 오브젝트 업데이트
         this.enemyLayer.addChild(enemy) // 스프라이트 레이어
         return enemy
     }
     spawnItem(pos, type){
         const item = new Item(type)
         item.set(pos)
-        this.items.addObject(item) // 오브젝트 업데이트
+        this.items.push(item) // 오브젝트 업데이트
         this.itemsLayer.addChild(item) // 스프라이트 레이어
         return item
     }
@@ -1890,7 +2082,7 @@ export class GameManager extends SceneObject {
         data.init.call(object,option)
         object.startRoutine("effect",data.update)
         parent.addChild(object)
-        this.effects.addObject(object)
+        this.effects.push(object)
     }
     killEffect(effect){
         for(let efc of this.effects){
@@ -1908,7 +2100,7 @@ export class GameManager extends SceneObject {
             this.ui.bossName.text = EData[enemy].name
         }
         this.ui.bossBottomAlert.visible = true
-        this.enemys.addObject(this.boss) // 오브젝트 업데이트
+        this.enemys.push(this.boss) // 오브젝트 업데이트
         this.enemyLayer.addChild(this.boss) // 스프라이트 레이어
     }
     activeBoss(spell){

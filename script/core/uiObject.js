@@ -1,7 +1,7 @@
 
 class UIObject extends GameObject {
-    constructor() {
-        super()
+    constructor(props) {
+        super(props)
         this.parentPanel = null
         this.inputGroup = null
         this.valiable = true
@@ -48,9 +48,10 @@ export class Button extends UIObject {
      * @param {{width:number,height:number}} [options.touchArea] - 버튼 터치 범위
      * @param {Function} [options.onHighlight] - 하이라이트 상태 변경 시 실행될 함수
      * @param {Function} [options.onPress] - 버튼 선택 시 실행될 함수
+     * @param {Function} [options.onToggle] - 버튼 토글 시 실행될 함수
      */
     constructor(options = {}) {
-        super();
+        super(options);
 
         const {
             pos,
@@ -61,6 +62,7 @@ export class Button extends UIObject {
             touchArea = null,
             onHighlight = null,
             onPress = null,
+            onToggle = null,
             style = Data.styles.default
         } = options;
 
@@ -75,6 +77,7 @@ export class Button extends UIObject {
         this.touchAreaOption = touchArea;
         this.onHighlight = onHighlight;
         this.onPress = onPress;
+        this.onToggle = onToggle;
         this.baseSprite = this.createBaseSprite(texture);
         this.textObject = null;
 
@@ -178,9 +181,11 @@ export class Button extends UIObject {
     toggleValiable(boolean){
         this.valiable = boolean
         this.hitAreaRect.interactive = boolean
+        this.onToggle?.(boolean)
     }
 
     press() {
+        if(this.inputGroup?.valiable === false) return
         if (this.valiable) {
             this.onPress();
         }
@@ -230,7 +235,9 @@ export class InputUIGroup {
     }
 
     /** 그룹 비활성화 */
-    exit() { this.valiable = false }
+    exit() { 
+        this.valiable = false 
+    }
 
     /**
      * 다음/이전 항목으로 인덱스를 이동한다

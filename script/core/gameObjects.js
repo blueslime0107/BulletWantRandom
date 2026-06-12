@@ -126,10 +126,10 @@ export class Routine {
 window.Routine = Routine
 
 export const GameObjectBase = Base => class extends Base {
-    constructor(...args) {
-        super(...args)
-        this.x = args.position?.x || 0
-        this.y = args.position?.y || 0
+    constructor(args) {
+        super(args)
+        this.x = args?.position?.x || 0
+        this.y = args?.position?.y || 0
         this.radius = 0
         this.hasBeenShowed = false
 
@@ -391,10 +391,17 @@ export const GameObjectBase = Base => class extends Base {
         return this
     }
     MoveValue(key, speed, time){
-        console.log(key)
         this.startRoutine("setvalue", function (self) {
             if (this.whileFrame(time)) {
                 self[key] += speed
+            }
+        })
+        return this
+    }
+    RunFuncByFrame(func, time, ease){
+        this.startRoutine("runFunc", function (self) {
+            if (this.whileFrame(time)) {
+                func.bind(self,frameMove(0,1,this.repeat,time,ease))
             }
         })
         return this
@@ -415,8 +422,8 @@ export const GameObjectBase = Base => class extends Base {
 class GameObjectCore extends PIXI.Container { }
 
 export class GameObject extends GameObjectBase(GameObjectCore) {
-    constructor() {
-        super()
+    constructor(prop) {
+        super(prop)
     }
 
 }
@@ -425,9 +432,9 @@ window.GameObject = GameObject
 // 오브젝트 자동 업데이트
 export class GameObjectGroup extends Array {
 
-    addObject(obj) {
+    push(obj) {
         obj.group = this
-        this.push(obj)
+        super.push(obj)
     }
 
     update() {
@@ -584,10 +591,30 @@ export class SceneObject extends GameObject {
         super()
         this.visible = false
         this.exitHide = false
+        /** @type {typeof import("./uiObject").InputUIGroup} */
+        this.inputGroup = null
         Scene.addScene(this)
     }
+
+    setInputGroup(group) {
+        this.inputGroup?.exit();
+        this.inputGroup = group;
+        if(this.inputGroup == null) return
+        for(let obj of this.inputGroup.items){
+            obj.toggleValiable(true)
+        }
+        this.inputGroup.enter();
+    }
+
     init() { }
     lateUpdate() { }
+    update(){
+        if(this.inputGroup){
+            this.inputGroup.update()
+        }
+        
+        super.update()
+    }
     enter() { }
 }
 window.SceneObject = SceneObject

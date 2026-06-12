@@ -227,3 +227,5 @@ const enemyArcaive = {
         }
     }
 }
+
+const enemyArcaiveList = Object.keys(enemyArcaive)
