@@ -1,7 +1,7 @@
 const enemyArcaive = {
     rush: {
-        enemy: "slime1",
-        health: 1,
+        enemy: EData.stupid,
+        health: 3,
         blue: 10,
         red: 0,
         spawnRate: 60,
@@ -12,8 +12,8 @@ const enemyArcaive = {
         }
     },
     smallBullet: {
-        enemy: "butterfly2",
-        health: 3,
+        enemy: EData.normal,
+        health: 5,
         blue: 0,
         red: 1,
         spawnRate: 117,
@@ -29,7 +29,7 @@ const enemyArcaive = {
         }
     },
     redLazer: {
-        enemy: "snake1",
+        enemy: EData.redLazer,
         health: 2,
         blue: 2,
         red: 3,
@@ -60,7 +60,7 @@ const enemyArcaive = {
         }
     },
     orangeLazer: {
-        enemy: "snake1",
+        enemy: EData.orangeLazer,
         health: 5,
         blue: 2,
         red: 3,
@@ -84,7 +84,7 @@ const enemyArcaive = {
         }
     },
     growingBullet: {
-        enemy: "bird1",
+        enemy: EData.cyanBigger,
         health: 2,
         blue: 2,
         red: 3,
@@ -106,7 +106,7 @@ const enemyArcaive = {
         }
     },
     homingBullet: {
-        enemy: "bird1",
+        enemy: EData.pinkHoming,
         health: 2,
         blue: 2,
         red: 3,
@@ -133,7 +133,7 @@ const enemyArcaive = {
         }
     },
     electricRush: {
-        enemy: "snake1",
+        enemy: EData.yellowSpread,
         health: 2,
         blue: 2,
         red: 3,
@@ -152,7 +152,7 @@ const enemyArcaive = {
         }
     },
     electricRush2: {
-        enemy: "butterfly2",
+        enemy: EData.greenSpread,
         health: 2,
         blue: 2,
         red: 3,
@@ -172,11 +172,11 @@ const enemyArcaive = {
         }
     },
     bomb1: {
-        enemy: "slime1",
+        enemy: EData.whiteBomb,
         health: 2,
         blue: 2,
         red: 3,
-        spawnRate: 62,
+        spawnRate: 128,
         spell: function (self) {
             if(this.whenTime(0)){
                 self.MoveDir(getRandom(-4,4)+90,4)
@@ -196,11 +196,11 @@ const enemyArcaive = {
         }
     },
     bomb2: {
-        enemy: "slime1",
+        enemy: EData.redCross,
         health: 2,
         blue: 2,
         red: 3,
-        spawnRate: 87,
+        spawnRate: 128,
         spell: function (self) {
             if(this.whenTime(0)){
                 self.MoveDir(getRandom(-4,4)+90,4)

@@ -1,0 +1,11 @@
+{
+    "asdf": {
+        "enemy": {
+            "texture": "enemy1"
+        },
+        "health": 2,
+        "blue": 2,
+        "red": 3,
+        "spawnRate": 128
+    }
+}

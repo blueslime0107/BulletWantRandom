@@ -297,13 +297,23 @@ const BData = {
 }
 
 const EData = {
-    butterfly1: { radius: 16, texture: 'enemyButterfly1', idleFrame:[0,1], moveFrame:[2,3]},
-    butterfly2: { radius: 16, texture: 'enemyButterfly2', idleFrame:[0,1], moveFrame:[2,3]},
-    bird1: { radius: 24, texture: 'enemyBird1', idleFrame:[0,1,2], fadeFrame:[3],moveFrame:[4,5]},
-    slime1: {radius: 24, texture: 'enemySlime1', idleFrame:[0,1,2]},
-    snake1: { radius: 24, texture: 'enemySnake1', idleFrame:[0,1,2], fadeFrame:[3],moveFrame:[4,5]},
-    stage1_midBoss: { radius: 48, texture: 'stage1_midBoss', idleFrame:[0], moveFrame:[1] },
-    stage1_boss1: { radius: 64, name:'Sizuku',texture: 'stage1_boss1', idleFrame:[0], fadeFrame:[1],moveFrame:[2],special:[3] },
+    // butterfly1: { radius: 16, texture: 'enemyButterfly1', idleFrame:[0,1], moveFrame:[2,3]},
+    // butterfly2: { radius: 16, texture: 'enemyButterfly2', idleFrame:[0,1], moveFrame:[2,3]},
+    // bird1: { radius: 24, texture: 'enemyBird1', idleFrame:[0,1,2], fadeFrame:[3],moveFrame:[4,5]},
+    // slime1: {radius: 24, texture: 'enemySlime1', idleFrame:[0,1,2]},
+    // snake1: { radius: 24, texture: 'enemySnake1', idleFrame:[0,1,2], fadeFrame:[3],moveFrame:[4,5]},
+    // stage1_midBoss: { radius: 48, texture: 'stage1_midBoss', idleFrame:[0], moveFrame:[1] },
+    // stage1_boss1: { radius: 64, name:'Sizuku',texture: 'stage1_boss1', idleFrame:[0], fadeFrame:[1],moveFrame:[2],special:[3] },
+    stupid: {radius: 24, texture: 'enemy_stupid'},
+    normal: {radius: 24, texture: 'enemy_normal'},
+    redLazer: {radius: 24, texture: 'enemy_redLazer'},
+    orangeLazer: {radius: 24, texture: 'enemy_orangeLazer'},
+    yellowSpread: {radius: 24, texture: 'enemy_yellowSpread'},
+    greenSpread: {radius: 24, texture: 'enemy_greenSpread'},
+    cyanBigger: {radius: 24, texture: 'enemy_cyanBigger'},
+    pinkHoming: {radius: 24, texture: 'enemy_pinkHoming'},
+    whiteBomb: {radius: 24, texture: 'enemy_whiteBomb'},
+    redCross: {radius: 24, texture: 'enemy_redCross'},
 }
 
 const EFC = {

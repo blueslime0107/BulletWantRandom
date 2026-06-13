@@ -120,7 +120,7 @@ class Enemy extends ShotObject {
     }
 
     applyEnemyData(enemy){
-        const data = EData[enemy]
+        const data = enemy
         this.radius = data.radius
         if(gm.showHitCircle) {
             this.baseSprite.removeChildren()
@@ -139,6 +139,8 @@ class Enemy extends ShotObject {
         this.fadeIndex = 0
         if(this.idleFrame && this.idleFrame.length > 0){
             this.baseSprite.texture = this.texture[this.idleFrame[0]]
+        }else{ // 단일 스프라이트
+            this.baseSprite.texture = this.texture
         }
 
     }
@@ -172,6 +174,8 @@ class Enemy extends ShotObject {
         }else if(state == "right"){
             this.baseSprite.scale.x = absScaleX
         }
+
+        if(!this.idleFrame){return}
 
         this.textureFrame++
         if(this.animationRate > this.textureFrame){
@@ -889,7 +893,7 @@ class Player extends GameObject {
     reset(){
         this.position.set(GS * 0.5, GS * 0.75)
         this.shotSubDelay = 10
-        this.shotMainDelay = 10
+        this.shotMainDelay = 2
         this.shotCount = 0
         this.godMode = false
         this.shotAble = true
@@ -950,10 +954,7 @@ class Player extends GameObject {
             if(this.shotCount % this.shotMainDelay == 0){
                 this.spawnShot(
                     {sprite: {texture: Textures.playerMainShot, angle:-90,scale:2,anchor:{x:0.8,y:0.5}},radius:10}, 
-                    pos(this.x-10,this.y)).MoveDir(-90,40)
-                this.spawnShot(
-                    {sprite: {texture: Textures.playerMainShot, angle:-90,scale:2,anchor:{x:0.8,y:0.5}},radius:10}, 
-                    pos(this.x+10,this.y)).MoveDir(-90,40)
+                    pos(this.x,this.y)).MoveDir(-90,40)
             }
             if(this.shotCount % this.shotSubDelay == 0){
                 for(let option of this.options){
@@ -1380,7 +1381,7 @@ class GameUIEnemyBlock extends GameObject {
         this.redText.text = String(data.red)
         this.hpText.text = String(data.health)
 
-        const enemyTexture = Textures[EData[data.enemy].texture][0]
+        const enemyTexture = Textures[data.enemy.texture]
         this.enemyImage.texture = enemyTexture
         this.enemyImage.width = 65
         this.enemyImage.height = 65
@@ -1632,8 +1633,7 @@ class GameUI extends GameObject{
         this.timer = new Text({
             text: "00",
             style: this.textStyle,
-            position:{x:GCX,y:GY-4},
-            scale: 0.5,
+            position:{x:GCX,y:GY},
             tint:'rgb(255, 255, 255)',
             anchor: 0.5,
             visible: false
@@ -2096,8 +2096,8 @@ export class GameManager extends SceneObject {
         this.boss = new Boss()
         this.boss.set(pos.x, pos.y)
         this.boss.applyEnemyData(enemy)
-        if(EData[enemy].name){
-            this.ui.bossName.text = EData[enemy].name
+        if(enemy.name){
+            this.ui.bossName.text = enemy.name
         }
         this.ui.bossBottomAlert.visible = true
         this.enemys.push(this.boss) // 오브젝트 업데이트

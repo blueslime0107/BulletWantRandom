@@ -4,7 +4,7 @@ const TextureAssets = {
     bullet:'bullet.png',
     titleBG:'title/background.png',
     utility:'utility/item.png',
-    enemy:'utility/enemy.png',
+    enemy:'enemy.png',
     ui_background:'utility/ui_background.png',
     playerArea:'utility/playerArea.png',
     distortion:'distortion.jpeg',
@@ -49,13 +49,23 @@ const Stands = {
 }
 
 const Enemys = {
-    enemyButterfly1: () => cropImg(Img.assets.enemy, 0, 0, 32, 32, 4, 1),
-    enemyButterfly2: () => cropImg(Img.assets.enemy, 0, 32, 32, 32, 4, 1),
-    enemyBird1 : () => cropImg(Img.assets.enemy, 0, 64, 48, 48, 6, 1),
-    enemySlime1 : () => cropImg(Img.assets.enemy, 0, 112, 48, 48, 3, 1),
-    enemySnake1 : () => cropImg(Img.assets.enemy, 0, 160, 48, 48, 6, 1),
-    stage1_midBoss: () => cropImg(Img.assets.stage1_midBoss, 0, 0, 64, 64, 2, 1),
-    stage1_boss1: () => cropImg(Img.assets.stage1_boss1, 0, 0, 81, 108, 4, 1),
+    // enemyButterfly1: () => cropImg(Img.assets.enemy, 0, 0, 32, 32, 4, 1),
+    // enemyButterfly2: () => cropImg(Img.assets.enemy, 0, 32, 32, 32, 4, 1),
+    // enemyBird1 : () => cropImg(Img.assets.enemy, 0, 64, 48, 48, 6, 1),
+    // enemySlime1 : () => cropImg(Img.assets.enemy, 0, 112, 48, 48, 3, 1),
+    // enemySnake1 : () => cropImg(Img.assets.enemy, 0, 160, 48, 48, 6, 1),
+    // stage1_midBoss: () => cropImg(Img.assets.stage1_midBoss, 0, 0, 64, 64, 2, 1),
+    // stage1_boss1: () => cropImg(Img.assets.stage1_boss1, 0, 0, 81, 108, 4, 1),
+    enemy_stupid: () => cropImg(Img.assets.enemy, 0, 0, 32, 32),
+    enemy_normal: () => cropImg(Img.assets.enemy, 32, 0, 32, 32),
+    enemy_redLazer: () => cropImg(Img.assets.enemy, 64, 0, 32, 32),
+    enemy_orangeLazer: () => cropImg(Img.assets.enemy, 96, 0, 32, 32),
+    enemy_cyanBigger: () => cropImg(Img.assets.enemy, 0, 32, 32, 32),
+    enemy_pinkHoming: () => cropImg(Img.assets.enemy, 64, 32, 32, 32),
+    enemy_yellowSpread: () => cropImg(Img.assets.enemy, 128, 0, 32, 32),
+    enemy_greenSpread: () => cropImg(Img.assets.enemy, 32, 32, 32, 32),
+    enemy_whiteBomb: () => cropImg(Img.assets.enemy, 160, 0, 32, 32),
+    enemy_redCross: () => cropImg(Img.assets.enemy, 96, 32, 32, 32)
 }
 
 const Bullets = {
@@ -102,11 +112,21 @@ const Utilitys = {
     spellNameBg: () => cropImg(Img.assets.utility, 224, 0, 176, 24),
 }
 
+const PlayerThings = {
+    playerIdle: () => cropImg(Img.assets.player, 0, 0, 32, 48, 8, 1),
+    playerLeft: () => cropImg(Img.assets.player, 0, 48, 32, 48, 8, 1),
+    playerRight: () => cropImg(Img.assets.player, 0, 96, 32, 48, 8, 1),
+    playerOption: () => cropImg(Img.assets.player, 32, 144, 16, 16),
+    playerMainShot: () => cropImg(Img.assets.player, 0, 144, 32, 16),
+    playerSubShot: () => cropImg(Img.assets.player, 80, 144, 32, 16),
+}
+
 const Textures = {
     ...Stands,
     ...Enemys,
     ...Bullets,
     ...Utilitys,
+    ...PlayerThings,
 
     rect: function () {
         let g = new Graphics();
@@ -161,12 +181,6 @@ const Textures = {
             antialias: false
         });
     },
-    playerIdle: () => cropImg(Img.assets.player, 0, 0, 32, 48, 8, 1),
-    playerLeft: () => cropImg(Img.assets.player, 0, 48, 32, 48, 8, 1),
-    playerRight: () => cropImg(Img.assets.player, 0, 96, 32, 48, 8, 1),
-    playerOption: () => cropImg(Img.assets.player, 0, 144, 16, 16),
-    playerMainShot: () => cropImg(Img.assets.player, 0, 160, 64, 16),
-    playerSubShot: () => cropImg(Img.assets.player, 0, 176, 64, 16),
     itemPoint:() => cropImg(Img.assets.bullet, 16, 528, 16, 16),
     itemBombPiece:() => cropImg(Img.assets.bullet, 353, 388, 32, 32),
 }
