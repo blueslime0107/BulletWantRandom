@@ -461,6 +461,24 @@ window.GameObjectGroup = GameObjectGroup
 // context 그래픽
 export class BitmapGraphic extends PIXI.Graphics {
 
+    drawRect(x, y, width, height, color = 0xffffff) {
+        const ctx = this.context;
+        ctx.fillStyle = color;
+        ctx.fillRect(x, y, width, height);
+    }
+
+    strokeRect(x, y, width, height, lineWidth = 2, color = 0xffffff) {
+        const ctx = this.context;
+        ctx.strokeStyle = color;
+        ctx.lineWidth = lineWidth;
+        ctx.strokeRect(x, y, width, height);
+    }
+
+    blt(texture, sx, sy, sw, sh, dx, dy, dw, dh) {
+        const ctx = this.context;
+        ctx.drawImage(texture.baseTexture.resource.source, sx, sy, sw, sh, dx, dy, dw, dh);
+    }
+
     drawLine(x1, y1, x2, y2, width = 2, color = 0xffffff) {
         const ctx = this.context;
         ctx.stroke({
@@ -514,9 +532,6 @@ export class BitmapGraphic extends PIXI.Graphics {
 
         return this;
     }
-
-
-
 
     drawDashedCircle(x, y, r, dashCount = 12, gap = 20, width = 4, color = 0xffffff) {
         const ctx = this.context;
@@ -572,6 +587,88 @@ export class BitmapGraphic extends PIXI.Graphics {
     }
 }
 window.BitmapGraphic = BitmapGraphic
+
+export class Bitmap extends PIXI.Sprite{
+    constructor(props) {
+        super(props)
+        this.canvas = document.createElement("canvas");
+        this.canvas.width = props.width;
+        this.canvas.height = props.height;
+
+        this.context = this.canvas.getContext("2d");
+        this._initTexture();
+    }
+
+    _initTexture() {
+        this.texture = PIXI.Texture.from(this.canvas);
+        this._lastTextureId = this.texture.uid;
+    }
+
+    _ensureTexture() {
+        // texture가 유효하지 않거나 손실되면 재생성
+        if (!this.texture || !this.texture.valid || this.texture.source?.destroyed) {
+            console.warn('[Bitmap] Texture invalid or destroyed, recreating...');
+            this._initTexture();
+        }
+    }
+
+    clear(){
+        this._ensureTexture();
+        this.context.clearRect(0, 0, this.canvas.width, this.canvas.height);
+        this.texture.update();
+    }
+
+    drawRect(x, y, width, height, color = 0xffffff) {
+        this._ensureTexture();
+        const ctx = this.context;
+        ctx.fillStyle = color;
+        ctx.fillRect(x, y, width, height);
+        this._updateTexture('drawRect');
+    }
+
+    strokeRect(x, y, width, height, lineWidth = 2, color = 0xffffff) {
+        this._ensureTexture();
+        const ctx = this.context;
+        ctx.strokeStyle = color;
+        ctx.lineWidth = lineWidth;
+        ctx.strokeRect(x, y, width, height);
+        this._updateTexture('strokeRect');
+    }
+
+    blt(texture, sx, sy, sw, sh, dx, dy, dw, dh) {
+        this._ensureTexture();
+        const source = texture.source.resource;
+
+        dw = dw || sw;
+        dh = dh || sh;
+
+        this.context.drawImage(
+            source,
+            sx+texture.frame.x, sy+texture.frame.y, sw, sh,
+            dx, dy, dw, dh
+        );
+
+        this._updateTexture('blt');
+    }
+
+    _updateTexture(method) {
+        if (!this.texture) return;
+        
+        // BaseTexture 동기화
+        if (this.texture.baseTexture) {
+            this.texture.baseTexture.update();
+        }
+        
+        // Texture 자체 업데이트
+        this.texture.update();
+        
+        // PIXI 렌더러에 변경 알림
+        if (this.texture.source) {
+            this.texture.source.update();
+        }
+    }
+}
+window.Bitmap = Bitmap
 
 // 언어별 폰트 자동변경 클래스
 export class LangTextStyle extends PIXI.TextStyle {

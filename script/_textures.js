@@ -5,14 +5,7 @@ const TextureAssets = {
     titleBG:'title/background.png',
     utility:'utility/item.png',
     enemy:'enemy.png',
-    ui_background:'utility/ui_background.png',
-    playerArea:'utility/playerArea.png',
-    distortion:'distortion.jpeg',
-    stage1_midBoss:'stage/stage1/midBoss.png',
-    stage1_boss1:'stage/stage1/boss1.png',
-    stage1_boss1_Stand:'stage/stage1/boss1_stand.png',
-    stage1_boss1_bg: 'stage/stage1/boss1_bg.png',
-    playerStand:'player_stand.png',
+    item:'item.png',
 }
 
 function cropImg(source, x, y, width, height, col=1, row=1){
@@ -104,14 +97,6 @@ const Bullets = {
     bulletNuke: () => cropImg(Img.assets.bullet, 432,384, 256, 256, 1,1),
 }
 
-const Utilitys = {
-    live: () => cropImg(Img.assets.utility, 0, 0, 64, 64),
-    liveEmpty: () => cropImg(Img.assets.utility, 64, 0, 64, 64),
-    bomb: () => cropImg(Img.assets.utility, 0, 64, 64, 64),
-    bombEmpty: () => cropImg(Img.assets.utility, 64, 64, 64, 64),
-    spellNameBg: () => cropImg(Img.assets.utility, 224, 0, 176, 24),
-}
-
 const PlayerThings = {
     playerIdle: () => cropImg(Img.assets.player, 0, 0, 32, 48, 8, 1),
     playerLeft: () => cropImg(Img.assets.player, 0, 48, 32, 48, 8, 1),
@@ -121,12 +106,17 @@ const PlayerThings = {
     playerSubShot: () => cropImg(Img.assets.player, 80, 144, 32, 16),
 }
 
+const Items = {
+    itemEnemy: () => cropImg(Img.assets.item, 0, 0, 64, 64, 6, 2),
+    itemPlayer: () => cropImg(Img.assets.item, 0, 128, 64, 64, 6, 2),
+}
+
 const Textures = {
     ...Stands,
     ...Enemys,
     ...Bullets,
-    ...Utilitys,
     ...PlayerThings,
+    ...Items,
 
     rect: function () {
         let g = new Graphics();

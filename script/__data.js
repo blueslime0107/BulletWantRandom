@@ -14,10 +14,7 @@ const gameData = {
         "Pause"
     ],
     "startScene": "MainGame",
-    "startSceneOption": {
-        stageId:1
-    },
-    "defaultBG": 'stage1',
+    "defaultBG": null,
     "defaultOption": {
       bgmVolume: 50,
       sfxVolume: 20,
@@ -137,7 +134,7 @@ const gameTxtsty = {
     },
     enemyBlockText: {
         fontFamily: 'Cafe24Ohsquare',
-        fontSize: 36,
+        fontSize: 24,
         fill: 'rgb(255,255,255)',
         stroke: {
             color: 'rgba(0, 0, 0, 1)',

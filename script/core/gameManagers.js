@@ -308,6 +308,8 @@ window.Img = new TextureManager()
 export class ThreeManager {
   constructor() {
     this.basePath = './resources/textures/'
+
+    this.bg = null
     // bg Parameters
     this.scrollSpeed = 0.5
     this.active = []
@@ -390,9 +392,11 @@ export class ThreeManager {
   }
 
   init() {
-    const bg = ThreeBG[gameData.defaultBG]
-    this.initBG(bg)
-    this.initSky(bg)
+    if(gameData.defaultBG){
+      this.bg = ThreeBG[gameData.defaultBG]
+      this.initBG(this.bg)
+      this.initSky(this.bg)
+    }
   }
 
   initBG(bg) {
@@ -563,6 +567,7 @@ export class ThreeManager {
 
 
   update() {
+    if(!this.bg){return}
     three.camera.position.x += this.scrollSpeed;
     this.sky.position.x = three.camera.position.x;
 

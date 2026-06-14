@@ -228,4 +228,60 @@ const enemyArcaive = {
     }
 }
 
-const enemyArcaiveList = Object.keys(enemyArcaive)
+const enemyItem = {
+    coin: {
+        imageId: 0
+    },
+    bulletClear: {
+        imageId: 1
+    },
+    killCircle: {
+        imageId: 2
+    },
+    levelUp: {
+        imageId: 3
+    },
+    counterBullet: {
+        imageId: 4,
+        onDeath: function(){
+            this.startRoutine("counterBullet",function(self){
+                if(this.whileTime(10,this.repeat<6)){
+                    gm.spawnBullet(BData.kunai,1,self).MoveDir(lookPoint(self,gm.player),6)
+                }
+            })
+        }
+    },
+    healthUP: {
+        imageId: 5
+    },
+    luckPrice: {
+        imageId: 6
+    },
+    barrier: {
+        imageId: 7
+    }
+}
+
+const playerItem = {
+    shotUp: {
+        imageId: 0
+    },
+    optionCircle: {
+        imageId: 1
+    },
+    optionTri: {
+        imageId: 2
+    },
+    optionSquare: {
+        imageId: 3
+    },
+    speedUp: {
+        imageId: 4
+    },
+    barrier: { 
+        imageId: 5
+    },
+    grazeArea: {
+        imageId: 6
+    }
+}

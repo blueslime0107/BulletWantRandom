@@ -1,8 +1,8 @@
 
 const ThreeTextures = {
-    stage1_bg1: { texture: 'stage/stage1/floor' },
-    stage1_sky: { texture: 'Bg1', crop: [0, 0, 540, 120] },
-    snowflake:  { texture: 'utility/snowflake' }
+    // stage1_bg1: { texture: 'stage/stage1/floor' },
+    // stage1_sky: { texture: 'Bg1', crop: [0, 0, 540, 120] },
+    // snowflake:  { texture: 'utility/snowflake' }
 }
 
 const _plainSegment = {

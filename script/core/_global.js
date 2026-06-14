@@ -50,8 +50,8 @@ var GameObject
 /** @type {typeof import("./gameObjects").GameObjectGroup} */
 var GameObjectGroup 
 
-/** @type {typeof import("./gameObjects").BitmapGraphic} */
-var BitmapGraphic
+/** @type {typeof import("./gameObjects").Bitmap} */
+var Bitmap
 
 /** @type {typeof import("./gameObjects").SceneObject} */
 var SceneObject

@@ -108,7 +108,7 @@ export class Button extends UIObject {
 
     init() {
         
-        this.hitAreaRect = Img.sprite("rect", 1, "rgba(255,255,255,1)", { anchor: { x: 0.5, y: 0.5 } });
+        this.hitAreaRect = Img.sprite("rect", 1, "rgba(255,255,255,1)", { anchor: { x: 0.5, y: 0.5 }, alpha:0 });
         this.hitAreaRect.cursor = 'pointer';
         this.hitAreaRect.eventMode = 'static';
         this.addChild(this.hitAreaRect)

@@ -307,3 +307,53 @@ function update() {
 }
 function resize() {
 }
+
+// ============ DEBUG HELPERS ============
+window.debugBitmap = function(index = 0) {
+  const block = gm.ui.enemyBlocks[index];
+  if (!block) {
+    console.error(`[debugBitmap] Block not found at index ${index}`);
+    return;
+  }
+  
+  const bitmap = block.sprite.itemUI;
+  console.group(`🔍 Bitmap Debug [Block ${index}]`);
+  console.log('Bitmap Object:', bitmap);
+  console.log('Canvas:', {
+    width: bitmap.canvas?.width,
+    height: bitmap.canvas?.height,
+    inDOM: !!bitmap.canvas?.parentElement,
+    created: !!bitmap.canvas
+  });
+  console.log('Texture:', {
+    exists: !!bitmap.texture,
+    valid: bitmap.texture?.valid,
+    uid: bitmap.texture?.uid,
+    baseTextureValid: !!bitmap.texture?.baseTexture?.valid,
+    baseTextureLive: !bitmap.texture?.baseTexture?.destroyed
+  });
+  console.log('Context:', {
+    exists: !!bitmap.context,
+    imageData: bitmap.context?.getImageData?.(0, 0, 1, 1)?.data
+  });
+  console.groupEnd();
+  
+  // 테스트 드로우
+  console.log('🎨 Testing drawRect...');
+  bitmap.drawRect(10, 5, 8, 8, 'rgb(255,100,100)');
+  console.log('✓ drawRect completed. Check screen for red square.');
+};
+
+window.testBitmapDraw = function(index = 0, x = 0, y = 0, w = 8, h = 8, color = 'rgb(0,255,0)') {
+  const block = gm.ui.enemyBlocks[index];
+  if (!block?.sprite?.itemUI) {
+    console.error(`[testBitmapDraw] Invalid block or bitmap at index ${index}`);
+    return false;
+  }
+  
+  const bitmap = block.sprite.itemUI;
+  console.log(`📍 Drawing at (${x},${y}) size ${w}x${h} color ${color}`);
+  bitmap.drawRect(x, y, w, h, color);
+  console.log('✓ Test draw completed');
+  return true;
+};

@@ -117,6 +117,9 @@ class Enemy extends ShotObject {
 
         this.red = 0
         this.blue = 0
+        this.level = 1
+        this.items = []
+        this.data = null
     }
 
     applyEnemyData(enemy){
@@ -146,10 +149,14 @@ class Enemy extends ShotObject {
     }
 
     activeSpell(spell){
+        this.data = spell
         this.health = spell.health
+        this.level = spell.level || 1
         this.spell = spell
         this.red = spell.red
         this.blue = spell.blue
+        this.items = spell.items
+
         this.startRoutine("spell",spell.spell)
     }
 
@@ -245,8 +252,16 @@ class Enemy extends ShotObject {
         this.endAllRoutine()
         gm.spawnEffect(EFC.enemyBlast,gm.gameLayer,this)
         this.whenDeadScore()
+        this.triggerItem('onDeath')
         Am.playSFX("eDead")
         this.die()
+    }
+
+    triggerItem(trigger){
+        for(let item of this.items){
+            console.log(item)
+            item[trigger].bind(this)
+        }
     }
 
     whenDeadScore(){
@@ -1341,36 +1356,44 @@ class GameUIEnemyBlock extends GameObject {
         this.outLine = Img.sprite('rect', [180,80], 'rgba(255, 255, 255, 1)')
         this.inBase = Img.sprite('rect', [175, 75], 'rgb(0, 0, 0)')
         this.enemyImage = new Sprite({anchor:0.5,position:{x:-50,y:0}})
-        this.hpText = new Text({
-            text:'0',
+        this.levelText = new Text({
+            text:'LV 0',
             style: Data.styles.enemyBlockText,
-            tint: 'rgb(255, 118, 118)',
-            position: {x:-15,y:-45},
+            tint: 'rgb(255, 255, 255)',
+            position: {x:-15,y:-18},
+            anchor: {x:0,y:0.5}
         })
         this.blueText = new Text({
             text:'0',
             style: Data.styles.enemyBlockText,
             tint: 'rgb(69, 97, 255)',
-            position: {x:-15,y:-12}
+            position: {x:-15,y:16},
+            anchor: {x:0,y:0.5}
         })
         this.redText = new Text({
             text:'0',
             style: Data.styles.enemyBlockText,
             tint: 'rgb(255, 57, 57)',
-            position: {x:30,y:-12}
+            position: {x:30,y:16},
+            anchor: {x:0,y:0.5}
         })
         this.crossText = new Text({
             text:'x',
             style: Data.styles.enemyBlockText,
             scale: 0.5,
-            position: {x:27,y:0}
+            position: {x:27,y:16},
+            anchor: {x:0,y:0.5}
+        })
+        this.itemUI = new Bitmap({
+            position: {x:-85,y:20},
+            width:80, height:16
         })
         this.spawnRate = new Container({position:{x:50,y:40}})
         this.sROutline = Img.sprite('rect', [20, 80], 'rgba(255, 255, 255, 1)',{anchor:{x:0.5,y:1},position:{x:50,y:0}})
         this.sRInBase = Img.sprite('rect', [15, 75], 'rgb(0, 0, 0)',{anchor:{x:0.5,y:1},position:{x:50,y:-2.5}})
         this.sRInBaseGague = Img.sprite('rect', [15, 75], 'rgb(109, 109, 109)',{anchor:{x:0.5,y:1},position:{x:50,y:-2.5}})
         this.spawnRate.addChild(this.sROutline, this.sRInBase, this.sRInBaseGague)
-        this.addChild(this.outLine, this.inBase, this.enemyImage, this.hpText, this.blueText, this.redText, this.crossText, this.spawnRate)
+        this.addChild(this.outLine, this.inBase, this.enemyImage, this.levelText, this.blueText, this.redText, this.crossText, this.spawnRate, this.itemUI)
 
         this.frame = 0
     }
@@ -1379,18 +1402,68 @@ class GameUIEnemyBlock extends GameObject {
         this.data = data
         this.blueText.text = String(data.blue)
         this.redText.text = String(data.red)
-        this.hpText.text = String(data.health)
+        this.levelText.text = data.level ? 'LV '+ String(data.level) : ''
 
         const enemyTexture = Textures[data.enemy.texture]
         this.enemyImage.texture = enemyTexture
         this.enemyImage.width = 65
         this.enemyImage.height = 65
+
+        if(!this.data.items){return}
+        // this.itemUI.clear()
+        for(let i=0;i<this.data.items.length;i++){
+            this.itemUI.blt(Img.texture.itemEnemy[this.data.items[i].imageId], 0,0,64,64,i*18,0,16,16)
+        }
+    }
+
+    _debugItemUI() {
+        // 콘솔에서 호출 가능한 헬퍼
+        console.log('[DEBUG] Current itemUI state:', {
+            isValid: !!this.itemUI,
+            texture: this.itemUI.texture,
+            baseTexture: this.itemUI.texture?.baseTexture,
+            canvas: this.itemUI.canvas,
+            visible: this.itemUI.visible,
+            parent: this.itemUI.parent?.constructor.name
+        });
+        return this.itemUI;
     }
 
     update(){
         super.update()
         this.frame++
         this.angle = Graph.sin(this.frame, -0.5,0.5,60)
+    }
+}
+
+class ShopButton extends Button {
+    constructor(){
+        super({
+            id: 0,
+            touchArea: {width:120,height:120},
+            onHighlight: function(isActive){
+                this.SetValueObj(this.scale,'x',isActive ? [1,1.08] : [1.08,1],10,Easing.easeOutCubic)
+                this.SetValueObj(this.scale,'y',isActive ? [1,1.08] : [1.08,1],10,Easing.easeOutCubic)
+            },
+            onPress: () => {
+                // entry.onPress();
+            },
+            onToggle: function(toggle){
+                this.alpha = toggle ? 1 : 0.5
+            },
+            scale: {x:0,y:1}
+        })
+
+        this.data = null
+        const sprite = Img.sprite('rect',120,'rgb(56, 56, 56)',{anchor:0.5})
+        this.addChild(sprite)
+        
+        this.image = new Sprite({anchor:0.5})
+        this.addChild(this.image)
+    }
+
+    updateData(data){
+
     }
 }
 
@@ -1512,21 +1585,7 @@ class GameUI extends GameObject{
         const itemBtnList = () => {
             const list = []
             for(let i=0;i<4;i++){
-                const btn = new Button({
-                    id: 0,
-                    touchArea: {width:120,height:120},
-                    onHighlight: function(isActive){
-                        this.SetValueObj(this.scale,'x',isActive ? [1,1.08] : [1.08,1],10,Easing.easeOutCubic)
-                        this.SetValueObj(this.scale,'y',isActive ? [1,1.08] : [1.08,1],10,Easing.easeOutCubic)
-                    },
-                    onPress: () => {
-                        // entry.onPress();
-                    },
-                    scale: {x:0,y:1}
-                });
-                const sprite = Img.sprite('rect',120,'rgba(0,0,255,1)',{anchor:0.5})
-                btn.addChild(sprite)
-        
+                const btn = new ShopButton();
                 addButton(btn)
                 list.push(btn)
             }
@@ -1535,14 +1594,30 @@ class GameUI extends GameObject{
         this.enemyItemBtns = itemBtnList()
         for(let i=0;i<this.enemyItemBtns.length;i++){ 
             this.enemyItemBtns[i].id = i+2
-            this.enemyItemBtns[i].set(170 * i + 85, 220)        
+            this.enemyItemBtns[i].set(170 * i + 85, 220)   
+            this.enemyItemBtns[i].onPress = function(){
+                const d = gm.selectedEnemyItem
+                gm.selectedEnemyItem = this
+                if(d){
+                    d.onHighlight(false)
+                }
+                this.endAllRoutine(true)
+            }      
+            this.enemyItemBtns[i].onHighlight = function(isActive){
+                if(gm.selectedEnemyItem == this){return}
+                this.endAllRoutine(true)
+                this.SetValueObj(this.scale,'x',isActive ? [1,1.08] : [1.08,1],10,Easing.easeOutCubic)
+                this.SetValueObj(this.scale,'y',isActive ? [1,1.08] : [1.08,1],10,Easing.easeOutCubic)
+            }     
             this.shopGroup.addItem(this.enemyItemBtns[i])
         }
+
+
         this.playerItemBtns = itemBtnList()
         for(let i=0;i<this.playerItemBtns.length;i++){ 
             this.playerItemBtns[i].id = i+6
             this.playerItemBtns[i].set(170 * i + 85, 370)       
-            this.shopGroup.addItem(this.enemyItemBtns[i])
+            this.shopGroup.addItem(this.playerItemBtns[i])
         }
 
         this.rerollBtn = new Button({
@@ -1558,7 +1633,12 @@ class GameUI extends GameObject{
             position: {x: 170, y:550},
             scale: {x:0,y:1}
         });
-        this.rerollBtn.addChild(Img.sprite('rect',[150,120],'rgba(0,0,255,1)',{anchor:0.5}))       
+        this.rerollBtn.addChild(Img.sprite('rect',[150,120],'rgb(43, 43, 43)',{anchor:0.5}))   
+        this.rerollBtn.addChild(new Text({
+            text: "Reroll",
+            anchor: 0.5,
+            style: Data.styles.menuItem
+        }))       
         this.shopGroup.addItem(this.rerollBtn)
         addButton(this.rerollBtn)
 
@@ -1575,7 +1655,12 @@ class GameUI extends GameObject{
             position: {x: GS-170, y:550},
             scale: {x:0,y:1}
         });
-        this.continueBtn.addChild(Img.sprite('rect',[150,120],'rgba(0,0,255,1)',{anchor:0.5}))   
+        this.continueBtn.addChild(Img.sprite('rect',[150,120],'rgb(49, 49, 49)',{anchor:0.5}))  
+        this.continueBtn.addChild(new Text({
+            text: "Continue",
+            anchor: 0.5,
+            style: Data.styles.menuItem
+        }))        
         this.shopGroup.addItem(this.continueBtn)
         addButton(this.continueBtn)
 
@@ -1677,12 +1762,36 @@ class GameUI extends GameObject{
         for(let i=0;i<sys.enemys.length;i++){
             const enemy = sys.enemys[i]
             if(this.enemyBlocks.length <= i){
-                const b = new GameUIEnemyBlock()
+                const b = new Button({
+                    id:0, 
+                    touchArea: {width:180,height:80},
+                    onHighlight: function(isActive){
+                        this.endAllRoutine()
+                        this.SetValueObj(this.scale,'x',isActive ? [1,1.08] : [1.08,1],10,Easing.easeOutCubic)
+                        this.SetValueObj(this.scale,'y',isActive ? [1,1.08] : [1.08,1],10,Easing.easeOutCubic)
+                    },
+                    onPress: function(){
+                        if(gm.selectedEnemyItem){
+                            this.sprite.data.items.push(gm.selectedEnemyItem.data) //  저장
+                            gm.ui.updateEnemyblockData() // 업데이트
+                            const d = gm.selectedEnemyItem // 임시 저장
+                            gm.selectedEnemyItem = null // 본인이 아니면 하이라이트 해제를 위한 초기화
+                            d.toggleValiable(false)
+                            d.onHighlight(false)
+                        }
+                    },
+                    onToggle: function(toggle){
+                        this.alpha = toggle ? 1 : 0.5
+                    }
+                }
+                )
+                b.sprite = new GameUIEnemyBlock()
+                b.addChild(b.sprite)
                 this.enemyBlocks.push(b)
                 this.leftSide.addChild(b)
             }
             const block = this.enemyBlocks[i]
-            block.updateData(enemy)
+            block.sprite.updateData(enemy)
         }
         const maxHeight = Math.min(GS - 100, sys.enemys.length * 90)
         for(let i=0;i<this.enemyBlocks.length;i++){
@@ -1692,7 +1801,7 @@ class GameUI extends GameObject{
     }
     updateEnemyblockSpawnRate(frame){
         for(let i=0;i<this.enemyBlocks.length;i++){
-            const block = this.enemyBlocks[i]
+            const block = this.enemyBlocks[i].sprite
             block.sRInBaseGague.height = 75 * ((frame % sys.enemys[i].spawnRate) / sys.enemys[i].spawnRate)
         }
     }
@@ -1718,7 +1827,17 @@ class GameUI extends GameObject{
         this.enemyRight.baseSprite.updateData(data.rightEnemy)
         this.enemyRight.data = data.rightEnemy
         this.enemyRight.toggleValiable(true)
-        // 아이템 업데이트는 나중에
+
+        for(let i=0;i<4;i++){
+            this.enemyItemBtns[i].data = data.enemyItems[i]
+            this.enemyItemBtns[i].image.texture = Textures.itemEnemy[data.enemyItems[i].imageId]
+            this.enemyItemBtns[i].toggleValiable(true)
+        }
+        for(let i=0;i<4;i++){
+            this.playerItemBtns[i].data = data.playerItems[i]
+            this.playerItemBtns[i].image.texture = Textures.itemPlayer[data.playerItems[i].imageId]
+            this.playerItemBtns[i].toggleValiable(true)
+        }
     }
     hideShop(){
         this.endAllRoutine()
@@ -1830,10 +1949,12 @@ export class SystemManager {
         const enemy = {
             enemy: data.enemy,
             health: data.health,
+            level: 1,
             blue: data.blue,
             red: data.red,
             spawnRate: data.spawnRate,
-            spell: data.spell
+            spell: data.spell,
+            items: []
         }
         this.enemys.push(enemy)
         gm.ui.updateEnemyblockData()
@@ -1863,9 +1984,14 @@ export class SystemManager {
     }
 
     openShop(){
+        const elist = Object.keys(enemyArcaive)
+        const eilist = Object.keys(enemyItem)
+        const pilist = Object.keys(playerItem)
         this.shopData = {
-            leftEnemy: enemyArcaive[enemyArcaiveList[getRandom(0, enemyArcaiveList.length-1)]],
-            rightEnemy: enemyArcaive[enemyArcaiveList[getRandom(0, enemyArcaiveList.length-1)]]
+            leftEnemy: enemyArcaive[elist[getRandom(0, elist.length-1)]],
+            rightEnemy: enemyArcaive[elist[getRandom(0, elist.length-1)]],
+            enemyItems: Array.from({length: 4}, () => enemyItem['counterBullet'/*eilist[getRandom(0, eilist.length-1)]*/]),
+            playerItems: Array.from({length: 4}, () => playerItem[pilist[getRandom(0, pilist.length-1)]]),
         }
         gm.ui.openShop()
     }
@@ -1888,7 +2014,6 @@ export class SystemManager {
                 }
             }
             if(this.whenTime(0)){
-                console.log("?")
                 sys.roundEnd()
             }
         })
@@ -1915,6 +2040,8 @@ export class SystemManager {
 
     stageEnd(){
         gm.killAll()
+        this.blueScore = 0
+        this.redScore = 1
         gm.endAllRoutine()
         this.stage++
         this.setGoalScore(Math.floor(this.goalScore * 1.5))
@@ -1973,6 +2100,8 @@ export class GameManager extends SceneObject {
         this.addChild(this.dialog)
 
         this.showHitCircle = false
+
+        this.selectedEnemyItem = null
     }
 
     getBullets(){
@@ -1989,14 +2118,7 @@ export class GameManager extends SceneObject {
     }
 
     enter(option = null) {
-        if (option) {
-            this.session = {
-                ...this.session,
-                ...option
-            }
-            this.stage = Data.stages[this.session.stageId]
-            this.startGame()
-        }
+        this.startGame()
     }
 
     reset(){
