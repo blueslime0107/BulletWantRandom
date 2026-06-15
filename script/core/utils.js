@@ -93,9 +93,25 @@ function getBorderSafeAngle(pos, border, margin = 50) {
  * centerSpread(3) // [-1, 0, 1]
  * centerSpread(5, 2) // [-4, -2, 0, 2, 4]
  */
-function centerSpread(n, gap = 1){
+function centerSpread(n, gap = 1, index){
   const mid = (n - 1) / 2
+  if(index !== undefined){
+    return (index - mid) * gap
+  }
   return Array.from({ length: n }, (_, i) => (i - mid) * gap)
+}
+/** 
+ * 주어진 개수를 좌/중앙/우로 분배
+ * @param {number} index 현재 인덱스
+ * @param {number} length 총 개수
+ * @returns {-1 | 0 | 1} 좌/중앙/우
+ */ 
+function getSide(index, length) {
+    const center = (length - 1) / 2;
+
+    if (index < center) return -1;
+    if (index > center) return 1;
+    return 0;
 }
 /**
  * 단일 값 또는 배열을 받아
@@ -507,7 +523,11 @@ function collideLineCircle(A, angleDeg, length, thickness, circle) {
 }
 
 function collideCircle(a,b,offset=0){
-  return getDist(a,b) < a.radius + b.radius + offset
+  const dx = a.x - b.x;
+  const dy = a.y - b.y;
+  const rr = a.radius + b.radius + offset;
+
+  return dx * dx + dy * dy <= rr * rr;
 }
 
 

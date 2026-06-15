@@ -102,12 +102,12 @@ const PlayerThings = {
     playerLeft: () => cropImg(Img.assets.player, 0, 48, 32, 48, 8, 1),
     playerRight: () => cropImg(Img.assets.player, 0, 96, 32, 48, 8, 1),
     playerOptionCircle: () => cropImg(Img.assets.player, 32, 144, 16, 16),
-    playerOptionTriangle: () => cropImg(Img.assets.player, 32, 144, 16, 16),
-    playerOptionSquare: () => cropImg(Img.assets.player, 32, 144, 16, 16),
+    playerOptionTriangle: () => cropImg(Img.assets.player, 48, 144, 16, 16),
+    playerOptionSquare: () => cropImg(Img.assets.player, 64, 144, 16, 16),
     playerMainShot: () => cropImg(Img.assets.player, 0, 144, 32, 16),
     playerSubShotCircle: () => cropImg(Img.assets.player, 80, 144, 32, 16),
-    playerSubShotTriangle: () => cropImg(Img.assets.player, 80, 144, 32, 16),
-    playerSubShotSquare: () => cropImg(Img.assets.player, 80, 144, 32, 16),
+    playerSubShotTriangle: () => cropImg(Img.assets.player, 112, 144, 32, 16),
+    playerSubShotSquare: () => cropImg(Img.assets.player, 146, 144, 32, 16),
 }
 
 const Items = {

@@ -276,27 +276,105 @@ const enemyItem = {
 
 const playerItem = {
     shotUp: {
-        imageId: 0
+        imageId: 0,
+        onEquip: function(){
+            this.power++
+        }
     },
     optionCircle: {
         imageId: 1,
         onEquip: function(){
-            if(!this.options.circle) this.options.circle = new GameObjectGroup()
-            const option = new GameObject({
-                source: Img.texture.playerOption
+            if(!this.options.circle) {
+                this.options.circle = new GameObjectGroup()
+                gm.addUpdate(this.options.circle)
+            }
+            const option = new GameObject()
+            option.sprite = new Sprite({
+                texture: Textures.playerOptionCircle,
+                scale: 2,
+                anchor: 0.5
             })
+            option.addChild(option.sprite)
+            option.update = function(){
+                const length = gm.player.options.circle.length
+                this.x = gm.player.x + centerSpread(length,38,this.index)
+                this.y = gm.player.y + 32
+            }
+            option.updateShot = function(shotCount){
+                if(shotCount % 5 == 0){
+                    gm.player.spawnShot({texture:Img.texture.playerSubShotCircle, scale:2,anchor:0.5}, 5, this)
+                    .MoveDir(-90,10).startRoutine("",function(self){
+                        if(this.whileTime(0)){
+                            self.angle = self.dir
+                            if(!this.enemy){
+                                for(let enemy of gm.getEnemys()){
+                                    if(getDist(self,enemy) < 200){
+                                        this.enemy = enemy
+                                        break
+                                    }
+                                }
+                            }else{
+                                self.dir = getHomingAngle(self.dir,lookPoint(self,this.enemy),5)
+                                if(!this.enemy.valiable){
+                                    this.enemy = null
+                                    this.endWhile()
+                                }
+                            }
+                        }
+                    }).angle = -90
+                }
+            }
+            option.index = this.options.circle.length
+
+
+            
             this.options.circle.push(option)
-            this.addChild(option)
+            gm.itemsLayer.addChild(option)
         }
     },
     optionTri: {
-        imageId: 2
+        imageId: 2,
+        onEquip: function(){
+            if(!this.options.triangle) {
+                this.options.triangle = new GameObjectGroup()
+                gm.addUpdate(this.options.triangle)
+            }
+            const option = new GameObject()
+            option.sprite = new Sprite({
+                texture: Textures.playerOptionTriangle,
+                scale: 2,
+                anchor: 0.5
+            })
+            option.addChild(option.sprite)
+            option.update = function(){
+                const length = gm.player.options.triangle.length
+                const pos = goAngle(gm.player, centerSpread(length,40,this.index)-90, 64)
+                this.x = pos.x
+                this.y = pos.y
+            }
+            option.updateShot = function(shotCount){
+                if(shotCount % 5 == 0){
+                    const side = getSide(this.index, gm.player.options.triangle.length)
+                    const add = side == 1 ? 15 : 0
+                    const angle = side != 0 ? Graph.sin(shotCount/5+add,-10,10,30)-90 : -90
+                    gm.player.spawnShot({texture:Img.texture.playerSubShotTriangle, scale:2,anchor:0.5,angle:20+angle}, 5, this).MoveDir(20+angle,20)
+                    gm.player.spawnShot({texture:Img.texture.playerSubShotTriangle, scale:2,anchor:0.5,angle:-20+angle}, 5, this).MoveDir(-20+angle,20)
+                }
+            }
+            option.index = this.options.triangle.length
+
+            this.options.triangle.push(option)
+            gm.itemsLayer.addChild(option)
+        }
     },
     optionSquare: {
         imageId: 3
     },
     speedUp: {
-        imageId: 4
+        imageId: 4,
+        onEquip: function(){
+            this.speed += 2
+        }
     },
     barrier: { 
         imageId: 5

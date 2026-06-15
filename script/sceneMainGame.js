@@ -763,11 +763,11 @@ class BentLazer extends ShotObject {
 }
 
 class PlayerShot extends ShotObject {
-    constructor(data) {
+    constructor(sprite, radius) {
         super()
         this.zIndex = -1
-        this.baseSprite = new Sprite(data.sprite)
-        this.radius = data.radius
+        this.baseSprite = new Sprite(sprite)
+        this.radius = radius
         if(gm.showHitCircle){
             this.baseSprite.addChild(Img.sprite('circle', this.radius, 'rgb(30, 255, 0)'))
         }
@@ -875,7 +875,7 @@ class Player extends GameObject {
     constructor() {
         super()
         this.radius = 12
-        this.speed = 10
+        this.speed = 6
         this.borderOffset = 8
         this.itemgetline = 250
 
@@ -889,7 +889,7 @@ class Player extends GameObject {
         this.hitSprite = Img.sprite('circle', this.radius, 'rgb(255, 0, 0)')
         this.addChild(this.hitSprite)
 
-
+        this.power = 0
         this.options = {}
         // this.addUpdate(this.options)
         // for(let i=0;i<4;i++){
@@ -903,8 +903,11 @@ class Player extends GameObject {
         //     this.addChild(option)
         // }
 
+        this.items = []
         
         this.shots = new GameObjectGroup()
+
+
         this.addUpdate(this.shots)
 
         // 스프라이트 애니메이션 관련 변수
@@ -919,15 +922,14 @@ class Player extends GameObject {
     }
 
     reset(){
+        this.power = 1
         this.position.set(GS * 0.5, GS * 0.75)
-        this.shotSubDelay = 10
         this.shotMainDelay = 2
         this.shotCount = 0
         this.godMode = false
         this.shotAble = true
         this.blockMove = false
-
-        playerItem.optionCircle.onEquip.call(this)
+        
     }
 
 
@@ -982,15 +984,14 @@ class Player extends GameObject {
         this.shotCount++
         if(Input.isDown(KeyBind.OK)){
             if(this.shotCount % this.shotMainDelay == 0){
-                this.spawnShot(
-                    {sprite: {texture: Textures.playerMainShot, angle:-90,scale:2,anchor:{x:0.8,y:0.5}},radius:10}, 
-                    pos(this.x,this.y)).MoveDir(-90,40)
+                for(let i=0;i<this.power;i++){
+                    this.spawnShot({texture: Textures.playerMainShot, angle:-90,scale:2,anchor:{x:0.8,y:0.5}},10, 
+                        pos(this.x+centerSpread(this.power,30,i),this.y)).MoveDir(-90,40)
+                }
             }
-            if(this.shotCount % this.shotSubDelay == 0){
-                for(let option of this.options){
-                    this.spawnShot(
-                        {sprite: {texture: Textures.playerSubShot, angle:-90,scale:2,anchor:{x:0.8,y:0.5}},radius:10},
-                        posAdd(option,this)).MoveDir(-90,10)
+            for(let optionKey in this.options){
+                for(let option of this.options[optionKey]){
+                    option.updateShot(this.shotCount)
                 }
             }
         }
@@ -1046,8 +1047,8 @@ class Player extends GameObject {
         })
     }
 
-    spawnShot(sprite,pos){
-        const shot = new PlayerShot(sprite)
+    spawnShot(sprite,radius,pos){
+        const shot = new PlayerShot(sprite,radius)
         shot.set(pos)
         this.shots.push(shot)
         gm.playLayer.addChild(shot)
@@ -1132,6 +1133,12 @@ class Player extends GameObject {
         }
     }
 
+    getItem(item){
+        this.items.push(item)
+        if(item.onEquip){
+            item.onEquip.call(this)
+        }
+    }
     
 }
 
@@ -1418,7 +1425,7 @@ class GameUIEnemyBlock extends GameObject {
     }
 
     updateData(data){
-        this.data = this.data || data
+        this.data = data || this.data
         this.blueText.text = String(this.data.blue)
         this.redText.text = String(this.data.red)
         this.levelText.text = this.data.level ? 'LV '+ String(this.data.level) : ''
@@ -1637,7 +1644,11 @@ class GameUI extends GameObject{
         this.playerItemBtns = itemBtnList()
         for(let i=0;i<this.playerItemBtns.length;i++){ 
             this.playerItemBtns[i].id = i+6
-            this.playerItemBtns[i].set(170 * i + 85, 370)       
+            this.playerItemBtns[i].set(170 * i + 85, 370)    
+            this.playerItemBtns[i].onPress = function(){
+                gm.player.getItem(this.data)
+                this.toggleValiable(false)
+            }        
             this.shopGroup.addItem(this.playerItemBtns[i])
         }
 
@@ -2065,8 +2076,8 @@ export class SystemManager {
         gm.endAllRoutine(true)
         this.setRound(0)
         this.score = 0
-        // this.openShop()
-        this.startRound()
+        this.openShop()
+        // this.startRound()
     }
 
     openShop(){
@@ -2076,7 +2087,7 @@ export class SystemManager {
         this.shopData = {
             leftEnemy: enemyArcaive[elist[getRandom(0, elist.length-1)]],
             rightEnemy: enemyArcaive[elist[getRandom(0, elist.length-1)]],
-            enemyItems: Array.from({length: 4}, () => enemyItem['levelUp'/*eilist[getRandom(0, eilist.length-1)]*/]),
+            enemyItems: Array.from({length: 4}, () => enemyItem[eilist[getRandom(0, eilist.length-1)]]),
             playerItems: Array.from({length: 4}, () => playerItem[pilist[getRandom(0, pilist.length-1)]]),
         }
         gm.ui.openShop()
@@ -2193,12 +2204,16 @@ export class GameManager extends SceneObject {
         return this.bullets.filter(x => x.valiable)
     }
 
+    getEnemys(){
+        return this.enemys.filter(x => x.valiable)
+    }
+
     init() {
         this.ui.init()
         this.effectBox.init()
         this.dialog.init()
         this.player = new Player()
-        this.addUpdate(this.player)
+        this.addUpdateIndex(this.player,0)
         this.playLayer.addChild(this.player)
     }
 

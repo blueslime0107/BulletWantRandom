@@ -172,6 +172,10 @@ export const GameObjectBase = Base => class extends Base {
         this.updateObjects.push(...objs);
     }
 
+    addUpdateIndex(obj, index){
+        this.updateObjects.splice(index, 0, obj);
+    }
+
     addChildUpdate(...objs){
         this.addChild(...objs)
         this.updateObjects.push(...objs);
