@@ -14,6 +14,9 @@ const gameData = {
         "Pause"
     ],
     "startScene": "MainGame",
+    "startSceneOption": {
+        mode: 'new-game'
+    },
     "defaultBG": null,
     "defaultOption": {
       bgmVolume: 50,

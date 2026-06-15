@@ -7,6 +7,7 @@ const enemyArcaive = {
         spawnRate: 60,
         spell: function (self) {
             if(this.whenTime(0)){
+                self.health = 3 * self.level
                 self.MoveDir(lookPoint(self,gm.player),4)
             }
         }
@@ -22,7 +23,7 @@ const enemyArcaive = {
                 self.MoveDir(90,2)
             }
             this.whenTime(60)
-            if(this.whileTime(2,this.repeat < 10)){
+            if(this.whileTime(2,this.repeat < self.level * 3 + 3)){
                 Am.playSFX("tan1")
                 gm.spawnBullet(BData.gun,6,self).MoveDirSpdEase(getRandomF(-30,30)+90,8,4,60,Easing.linear)
             }
@@ -230,7 +231,10 @@ const enemyArcaive = {
 
 const enemyItem = {
     coin: {
-        imageId: 0
+        imageId: 0,
+        onDeath: function(){
+            sys.coin += 1
+        }
     },
     bulletClear: {
         imageId: 1
@@ -239,14 +243,19 @@ const enemyItem = {
         imageId: 2
     },
     levelUp: {
-        imageId: 3
+        temporary: true,
+        imageId: 3,
+        onEquip: function(){
+            this.setLevel(this.level+1)
+        }
     },
     counterBullet: {
         imageId: 4,
         onDeath: function(){
-            this.startRoutine("counterBullet",function(self){
-                if(this.whileTime(10,this.repeat<6)){
-                    gm.spawnBullet(BData.kunai,1,self).MoveDir(lookPoint(self,gm.player),6)
+            const enemy = this
+            gm.startRoutine("counterBullet",function(self){
+                if(this.whileTime(5,this.repeat<6)){
+                    gm.spawnBullet(BData.kunai,1,enemy).MoveDir(lookPoint(enemy,gm.player)+getRandom(-5,5),10)
                 }
             })
         }

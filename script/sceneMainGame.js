@@ -259,8 +259,7 @@ class Enemy extends ShotObject {
 
     triggerItem(trigger){
         for(let item of this.items){
-            console.log(item)
-            item[trigger].bind(this)
+            item[trigger].call(this)
         }
     }
 
@@ -377,6 +376,10 @@ class Bullet extends ShotObject {
             anchor: 0.5,
             scale:2
         })
+        this.subSprite = new Sprite({
+            anchor: 0.5,
+            scale:4
+        })
 
         this.data = null
         this.shape = 0
@@ -389,12 +392,13 @@ class Bullet extends ShotObject {
             outScreen: true
         }
 
-        this.addChild(this.baseSprite)
+        this.addChild(this.baseSprite,this.subSprite)
 
         if(gm.showHitCircle) {
             this.hitCircleSprite = Img.sprite('circle', this.radius, 'rgb(255, 0, 0)')
             this.baseSprite.addChild(this.hitCircleSprite)
         }
+        this.appear = 0
     }
 
     /** 
@@ -425,6 +429,7 @@ class Bullet extends ShotObject {
         this.zIndex = data.z
         this.baseSprite.anchor.set(0.5)
         this.baseSprite.texture = Textures[data.texture][color]
+        this.subSprite.texture = Textures.bulletSpawn[color]
         this.shape = data.name
         this.color = color
         if(gm.showHitCircle) {
@@ -439,6 +444,12 @@ class Bullet extends ShotObject {
         super.update()
         if(!this.valiable){
             return
+        }
+        if(this.appear == 0){
+            if(this.subSprite.scale.x > 0){
+                this.subSprite.scale.x -= 0.5
+                this.subSprite.scale.y -= 0.5
+            }else{this.appear = 1}
         }
         if(this.autoDie.outScreen && this.onceShowAndOffScreen()){
             this.die()
@@ -1399,12 +1410,12 @@ class GameUIEnemyBlock extends GameObject {
     }
 
     updateData(data){
-        this.data = data
-        this.blueText.text = String(data.blue)
-        this.redText.text = String(data.red)
-        this.levelText.text = data.level ? 'LV '+ String(data.level) : ''
+        this.data = this.data || data
+        this.blueText.text = String(this.data.blue)
+        this.redText.text = String(this.data.red)
+        this.levelText.text = this.data.level ? 'LV '+ String(this.data.level) : ''
 
-        const enemyTexture = Textures[data.enemy.texture]
+        const enemyTexture = Textures[this.data.enemy.texture]
         this.enemyImage.texture = enemyTexture
         this.enemyImage.width = 65
         this.enemyImage.height = 65
@@ -1460,10 +1471,6 @@ class ShopButton extends Button {
         
         this.image = new Sprite({anchor:0.5})
         this.addChild(this.image)
-    }
-
-    updateData(data){
-
     }
 }
 
@@ -1772,8 +1779,7 @@ class GameUI extends GameObject{
                     },
                     onPress: function(){
                         if(gm.selectedEnemyItem){
-                            this.sprite.data.items.push(gm.selectedEnemyItem.data) //  저장
-                            gm.ui.updateEnemyblockData() // 업데이트
+                            this.sprite.data.getItem(gm.selectedEnemyItem.data)
                             const d = gm.selectedEnemyItem // 임시 저장
                             gm.selectedEnemyItem = null // 본인이 아니면 하이라이트 해제를 위한 초기화
                             d.toggleValiable(false)
@@ -1788,6 +1794,7 @@ class GameUI extends GameObject{
                 b.sprite = new GameUIEnemyBlock()
                 b.addChild(b.sprite)
                 this.enemyBlocks.push(b)
+                enemy.blockUI = b.sprite
                 this.leftSide.addChild(b)
             }
             const block = this.enemyBlocks[i]
@@ -1821,11 +1828,11 @@ class GameUI extends GameObject{
     }
     updateShopData(){
         const data = sys.shopData
-        this.enemyLeft.baseSprite.updateData(data.leftEnemy)
         this.enemyLeft.data = data.leftEnemy
+        this.enemyLeft.baseSprite.updateData(data.leftEnemy)
         this.enemyLeft.toggleValiable(true)
-        this.enemyRight.baseSprite.updateData(data.rightEnemy)
         this.enemyRight.data = data.rightEnemy
+        this.enemyRight.baseSprite.updateData(data.rightEnemy)
         this.enemyRight.toggleValiable(true)
 
         for(let i=0;i<4;i++){
@@ -1852,10 +1859,41 @@ class GameUI extends GameObject{
     }
 }
 
+class EnemyData {
+    constructor(data){
+        this.enemy = data.enemy
+        this.health = data.health
+        this.level = 1
+        this.blue = data.blue
+        this.red = data.red
+        this.spawnRate = data.spawnRate
+        this.spell = data.spell
+        this.items = []
+
+        this.blockUI = null
+    }
+
+    getItem(item){
+        if(!item.temporary){
+            this.items.push(item)
+        }
+        if(item.onEquip){
+            item.onEquip.call(this)
+        }
+        this.blockUI.updateData(this)
+    }
+
+    setLevel(level){
+        this.level = level
+        this.blockUI.updateData(this)
+    }
+}
+
 export class SystemManager {
     constructor(){
         this._blueScore = 0
         this._redScore = 1
+        this._coin = 0
         this._score = 0
         this.reset()
     }
@@ -1866,6 +1904,7 @@ export class SystemManager {
 
         this.blueScore = 0
         this.redScore = 1
+        this.coin = 0
         this.score = 0
         this.totalScore = 0
 
@@ -1883,6 +1922,16 @@ export class SystemManager {
         this.timer = 0
         
         this.enemys = [ ]
+    }
+
+    set coin(value){
+        this._coin = value
+        if(!gm){return}
+        gm.ui.coin.text = String(this._coin)
+    }
+
+    get coin(){
+        return this._coin
     }
 
     set score(value){
@@ -1946,16 +1995,7 @@ export class SystemManager {
 
     addEnemy(data){
         // 복사해 저장
-        const enemy = {
-            enemy: data.enemy,
-            health: data.health,
-            level: 1,
-            blue: data.blue,
-            red: data.red,
-            spawnRate: data.spawnRate,
-            spell: data.spell,
-            items: []
-        }
+        const enemy = new EnemyData(data)
         this.enemys.push(enemy)
         gm.ui.updateEnemyblockData()
     }
@@ -1963,14 +2003,6 @@ export class SystemManager {
     firstStage(){
         this.addEnemy(enemyArcaive.rush)
         this.addEnemy(enemyArcaive.smallBullet)
-        // this.addEnemy(enemyArcaive.bomb1)
-        // this.addEnemy(enemyArcaive.bomb2)
-        // this.addEnemy(enemyArcaive.electricRush)
-        // this.addEnemy(enemyArcaive.electricRush2)
-        // this.addEnemy(enemyArcaive.growingBullet)
-        // this.addEnemy(enemyArcaive.homingBullet)
-        // this.addEnemy(enemyArcaive.orangeLazer)
-        // this.addEnemy(enemyArcaive.redLazer)
         this.setGoalScore(5000)
         this.stage = 1
     }
@@ -1990,7 +2022,7 @@ export class SystemManager {
         this.shopData = {
             leftEnemy: enemyArcaive[elist[getRandom(0, elist.length-1)]],
             rightEnemy: enemyArcaive[elist[getRandom(0, elist.length-1)]],
-            enemyItems: Array.from({length: 4}, () => enemyItem['counterBullet'/*eilist[getRandom(0, eilist.length-1)]*/]),
+            enemyItems: Array.from({length: 4}, () => enemyItem['levelUp'/*eilist[getRandom(0, eilist.length-1)]*/]),
             playerItems: Array.from({length: 4}, () => playerItem[pilist[getRandom(0, pilist.length-1)]]),
         }
         gm.ui.openShop()
@@ -2053,8 +2085,7 @@ export class GameManager extends SceneObject {
     constructor() {
         super()
         this.session = {
-            mode: 'new-game',
-            stage: gameData.defaultStage
+            mode: 'new-game'
         }
         this.stage = null
 
@@ -2118,7 +2149,9 @@ export class GameManager extends SceneObject {
     }
 
     enter(option = null) {
-        this.startGame()
+        if(option?.mode == 'new-game'){
+            this.startGame()    
+        }
     }
 
     reset(){
