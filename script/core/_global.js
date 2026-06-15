@@ -40,7 +40,7 @@ var Graphics
 /** @type {typeof PIXI.Rectangle} */
 var Rectangle 
 
-/** @type {typeof import("./uiObject").TextObject} */
+/** @type {typeof import("./gameObjects").TextObject} */
 var TextObject
 
 /** @type {typeof import("./gameObjects").Routine} */

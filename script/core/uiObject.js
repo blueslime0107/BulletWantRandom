@@ -22,21 +22,6 @@ class UIObject extends GameObject {
     }
 }
 
-export class TextObject extends UIObject {
-    constructor(option) {
-        super()
-        this.textClass = new Text(option)
-        this.textClass.x = 0
-        this.textClass.y = 0
-        if(option.position){
-            this.x = option.position.x
-            this.y = option.position.y
-        }
-        this.addChild(this.textClass)
-    }
-}
-window.TextObject = TextObject
-
 export class Button extends UIObject {
     /**
      * @param {Object} options - 버튼 옵션

@@ -429,6 +429,15 @@ export class GameObject extends GameObjectBase(GameObjectCore) {
 }
 window.GameObject = GameObject
 
+class TextObjectCore extends PIXI.Text { }
+
+export class TextObject extends GameObjectBase(TextObjectCore) {
+    constructor(prop) {
+        super(prop)
+    }
+}
+window.TextObject = TextObject
+
 // 오브젝트 자동 업데이트
 export class GameObjectGroup extends Array {
 

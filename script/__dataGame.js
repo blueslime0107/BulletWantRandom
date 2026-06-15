@@ -1,3 +1,4 @@
+
 const enemyArcaive = {
     rush: {
         enemy: EData.stupid,
@@ -17,7 +18,7 @@ const enemyArcaive = {
         health: 5,
         blue: 0,
         red: 1,
-        spawnRate: 117,
+        spawnRate: 120,
         spell: function (self) {
             if(this.whenTime(0)){
                 self.MoveDir(90,2)
@@ -247,6 +248,8 @@ const enemyItem = {
         imageId: 3,
         onEquip: function(){
             this.setLevel(this.level+1)
+            this.setBlue(this.blue*2)
+            this.setRed(this.red*2)
         }
     },
     counterBullet: {
@@ -276,7 +279,15 @@ const playerItem = {
         imageId: 0
     },
     optionCircle: {
-        imageId: 1
+        imageId: 1,
+        onEquip: function(){
+            if(!this.options.circle) this.options.circle = new GameObjectGroup()
+            const option = new GameObject({
+                source: Img.texture.playerOption
+            })
+            this.options.circle.push(option)
+            this.addChild(option)
+        }
     },
     optionTri: {
         imageId: 2

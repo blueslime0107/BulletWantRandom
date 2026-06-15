@@ -549,6 +549,7 @@ class Lazer extends GameObject {
         const bullet = gm.spawnBullet(BData.circle,6,this.startPos,0,0)
         bullet.setAutoDie({outScreen:false})
         bullet.baseSprite.visible = false
+        bullet.subSprite.visible = false
         // bullet.baseSprite.alpha = 0.2
         bullet.noDamage = true
         this.bullets.push(bullet)
@@ -699,6 +700,7 @@ class BentLazer extends ShotObject {
         if(this._frame < this.length){
             const bullet = gm.spawnBullet(BData.circle,this.color,this.startPos)
             bullet.baseSprite.visible = false
+            bullet.subSprite.visible = false
             this.bullets.push(bullet)
             this._frame++
         }
@@ -888,8 +890,8 @@ class Player extends GameObject {
         this.addChild(this.hitSprite)
 
 
-        this.options = new GameObjectGroup()
-        this.addUpdate(this.options)
+        this.options = {}
+        // this.addUpdate(this.options)
         // for(let i=0;i<4;i++){
         //     const option = new PlayerOption()
         //     option.startRoutine("option",function(self){
@@ -924,6 +926,8 @@ class Player extends GameObject {
         this.godMode = false
         this.shotAble = true
         this.blockMove = false
+
+        playerItem.optionCircle.onEquip.call(this)
     }
 
 
@@ -959,18 +963,18 @@ class Player extends GameObject {
     }
 
     updateOptions(){
-        if(Input.isReleased(KeyBind.SLOW)){
-            for(let i=0;i<this.options.length;i++){
-                const option = this.options[i]
-                option.MoveTime(goAngle(posZero,i*80-210,100),20,Easing.easeOutSine)
-            }
-        }
-        if(Input.isPressed(KeyBind.SLOW)){
-            for(let i=0;i<this.options.length;i++){
-                const option = this.options[i]
-                option.MoveTime(goAngle(posZero,i*40-150,70),20,Easing.easeOutCubic)
-            }
-        }
+        // if(Input.isReleased(KeyBind.SLOW)){
+        //     for(let i=0;i<this.options.length;i++){
+        //         const option = this.options[i]
+        //         option.MoveTime(goAngle(posZero,i*80-210,100),20,Easing.easeOutSine)
+        //     }
+        // }
+        // if(Input.isPressed(KeyBind.SLOW)){
+        //     for(let i=0;i<this.options.length;i++){
+        //         const option = this.options[i]
+        //         option.MoveTime(goAngle(posZero,i*40-150,70),20,Easing.easeOutCubic)
+        //     }
+        // }
     }
     
     updateShots(){
@@ -1329,11 +1333,13 @@ class EffectPlayBox {
     
     init(){
         this.initRoundAlert()
+        this.initRoundScoreAlert()
     }
 
     initRoundAlert(){
         this.roundAlertObject = new GameObject()
         gm.efcEnemyUnder.addChild(this.roundAlertObject)
+        gm.addUpdate(this.roundAlertObject)
         this.roundAlertText = new Text({
             text: "ROUND 01",
             style: new TextStyle({
@@ -1344,7 +1350,9 @@ class EffectPlayBox {
             anchor: 0.5
         })
         this.roundAlertObject.addChild(this.roundAlertText)
-        gm.addUpdate(this.roundAlertObject)
+    }
+
+    initRoundScoreAlert(){
     }
 
     stageAlert(num){
@@ -1490,8 +1498,8 @@ class GameUI extends GameObject{
         this.removeChildren()
         this._initSideUI()
         this._initLeftSide()
-        this._initShop()
         this._initPlayerAreaUI()
+        this._initShop()
 
         this.updateBossHealth()
     }
@@ -1609,6 +1617,12 @@ class GameUI extends GameObject{
                     d.onHighlight(false)
                 }
                 this.endAllRoutine(true)
+                this.scale.set(1.2)
+                this.startRoutine("select", function(self){
+                    if(this.whileTime(0)){
+                        self.angle = Graph.sin(this.repeat, -5,5,20)
+                    }
+                })
             }      
             this.enemyItemBtns[i].onHighlight = function(isActive){
                 if(gm.selectedEnemyItem == this){return}
@@ -1657,6 +1671,7 @@ class GameUI extends GameObject{
                 this.SetValueObj(this.scale,'y',isActive ? [1,1.08] : [1.08,1],10,Easing.easeOutCubic)
             },
             onPress: () => {
+                gm.ui.clearShopRoutine()
                 sys.startRound()
             },
             position: {x: GS-170, y:550},
@@ -1725,12 +1740,23 @@ class GameUI extends GameObject{
         this.timer = new Text({
             text: "00",
             style: this.textStyle,
-            position:{x:GCX,y:GY},
+            position:{x:GCX,y:GY-10},
             tint:'rgb(255, 255, 255)',
-            anchor: 0.5,
+            anchor: {x:0.5, y:0},
             visible: false
         })
         this.addChild(this.timer)
+
+        this.round = new Text({
+            text: "ROUND 01",
+            style:this.textStyle,
+            position:{x:GX,y:GY-10},
+            tint:'rgb(255, 255, 255)',
+            anchor: 0,
+            visible: true
+        })
+        this.addChild(this.round)
+
     }
 
     update(){
@@ -1759,6 +1785,9 @@ class GameUI extends GameObject{
     updateTimer(){
         this.timer.visible = sys.timer > 0
         this.timer.text = String(Math.ceil(sys.timer / 60)).padStart(2,'0')
+    }
+    updateRound(){
+        this.round.text = `ROUND ${String(sys.round)} / ${String(sys.roundCount)}`
     }
 
     updateEnemyblockData(){
@@ -1857,6 +1886,13 @@ class GameUI extends GameObject{
             }
         })
     }
+
+    clearShopRoutine(){
+        for(let item of this.shopGroup.items){
+            item.endAllRoutine(true)
+        }
+        gm.selectedEnemyItem = null
+    }
 }
 
 class EnemyData {
@@ -1885,6 +1921,16 @@ class EnemyData {
 
     setLevel(level){
         this.level = level
+        this.blockUI.updateData(this)
+    }
+
+    setBlue(value){
+        this.blue = value
+        this.blockUI.updateData(this)
+    }
+
+    setRed(value){
+        this.red = value
         this.blockUI.updateData(this)
     }
 }
@@ -1988,6 +2034,11 @@ export class SystemManager {
         gm.ui.updateTimer()
     }
 
+    setRound(value){
+        this.round = value
+        gm.ui.updateRound()
+    }
+
     setGoalScore(value){
         this.goalScore = value
         gm.ui.goalScore.text = String(this.goalScore)
@@ -2012,7 +2063,10 @@ export class SystemManager {
             this.firstStage()
         }
         gm.endAllRoutine(true)
-        this.openShop()
+        this.setRound(0)
+        this.score = 0
+        // this.openShop()
+        this.startRound()
     }
 
     openShop(){
@@ -2032,7 +2086,7 @@ export class SystemManager {
         gm.ui.hideShop()
         gm.startRoutine("round",function(){
             if(this.whenTime(0)){
-                sys.beforeStage()
+                sys.beforeRound()
             }
             if(this.whenTime(60)){
                 sys.setTime(sys.roundTime*60)
@@ -2048,13 +2102,19 @@ export class SystemManager {
             if(this.whenTime(0)){
                 sys.roundEnd()
             }
+            if(this.whenTime(60)){
+                if(sys.score > sys.goalScore){
+                    sys.stageEnd()
+                }else{
+                    sys.startRound()
+                }
+            }
         })
     }
 
-    beforeStage(){
-        gm.effectBox.stageAlert(this.stage)
-        this.round = this.roundCount
-        this.score = 0
+    beforeRound(){
+        if(this.round == 0) gm.effectBox.stageAlert(this.stage)
+        this.setRound(this.round + 1)
     }
 
     roundEnd(){
@@ -2062,12 +2122,6 @@ export class SystemManager {
         this.score += this.totalScore
         this.blueScore = 0
         this.redScore = 1
-        this.round--
-        if(this.score > this.goalScore){
-            this.stageEnd()
-        }else{
-            this.startRound()
-        }
     }
 
     stageEnd(){
