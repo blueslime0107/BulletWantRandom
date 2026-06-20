@@ -329,7 +329,7 @@ const playerItem = {
 
             
             this.options.circle.push(option)
-            gm.itemsLayer.addChild(option)
+            gm.pOptionLayer.addChild(option)
         }
     },
     optionTri: {
@@ -364,7 +364,7 @@ const playerItem = {
             option.index = this.options.triangle.length
 
             this.options.triangle.push(option)
-            gm.itemsLayer.addChild(option)
+            gm.pOptionLayer.addChild(option)
         }
     },
     optionSquare: {

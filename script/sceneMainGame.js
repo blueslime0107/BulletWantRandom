@@ -96,7 +96,6 @@ export class ShotObject extends GameObject {
 class Enemy extends ShotObject {
     constructor(){
         super()
-        this.darkAura = this.addChild(Img.sprite('gradiusCircle', 92, 'rgba(0, 0, 0, 0.43)'))
         this.baseSprite = new Sprite({anchor:0.5,scale:2})
         if(gm.showHitCircle) {
             this.baseSprite.addChild(Img.sprite('circle', this.radius, 'rgb(30, 255, 0)'))
@@ -247,12 +246,14 @@ class Enemy extends ShotObject {
         }
     }
 
-    kill(){
+    kill(caller = 'player'){
         super.kill()
         this.endAllRoutine()
         gm.spawnEffect(EFC.enemyBlast,gm.gameLayer,this)
-        this.whenDeadScore()
-        this.triggerItem('onDeath')
+        if(caller == 'player'){
+            this.whenDeadScore()
+            this.triggerItem('onDeath')
+        }
         Am.playSFX("eDead")
         this.die()
     }
@@ -1004,6 +1005,7 @@ class Player extends GameObject {
         this.godMode = true
         this.shotAble = false
         this.blockMove = true
+        sys.playerKilled()
         this.startRoutine("damage",function(self){
             if(this.whenTime(0)){
                 Am.playSFX("pDead")
@@ -1051,7 +1053,7 @@ class Player extends GameObject {
         const shot = new PlayerShot(sprite,radius)
         shot.set(pos)
         this.shots.push(shot)
-        gm.playLayer.addChild(shot)
+        gm.pShotLayer.addChild(shot)
         return shot
     }
 
@@ -1348,7 +1350,6 @@ class EffectPlayBox {
         gm.efcEnemyUnder.addChild(this.roundAlertObject)
         gm.addUpdate(this.roundAlertObject)
         this.roundAlertText = new Text({
-            text: "ROUND 01",
             style: new TextStyle({
                 fontFamily: 'Cafe24Ohsquare',
                 fontSize: 72,
@@ -1357,12 +1358,14 @@ class EffectPlayBox {
             anchor: 0.5
         })
         this.roundAlertObject.addChild(this.roundAlertText)
+        this.roundAlertObject.visible = false
     }
 
     initRoundScoreAlert(){
     }
 
     stageAlert(num){
+        this.roundAlertObject.visible = true
         this.roundAlertText.text = `Stage ${String(num).padStart(2,'0')}`
         this.roundAlertObject.startRoutine("roundAlert", function(self){
             if(this.whenTime(0)){
@@ -1758,16 +1761,18 @@ class GameUI extends GameObject{
         })
         this.addChild(this.timer)
 
-        this.round = new Text({
-            text: "ROUND 01",
-            style:this.textStyle,
-            position:{x:GX,y:GY-10},
-            tint:'rgb(255, 255, 255)',
-            anchor: 0,
-            visible: true
-        })
-        this.addChild(this.round)
-
+        // this.round = new Text({
+        //     text: "ROUND 01",
+        //     style:this.textStyle,
+        //     position:{x:GX,y:GY-10},
+        //     tint:'rgb(255, 255, 255)',
+        //     anchor: 0,
+        //     visible: true
+        // })
+        // this.addChild(this.round)
+        this.liveGague = new Container({position:{x:GX,y:GY}})
+        this.lives = []
+        this.addChild(this.liveGague)
     }
 
     update(){
@@ -1779,6 +1784,23 @@ class GameUI extends GameObject{
             this.bossBottomAlert.visible = false
         }
     }
+
+    updateLive(){
+        while(this.lives.length < sys.liveMax){
+            const life = new Sprite({
+                texture: Img.texture.ui_heartEmpty,
+                scale: 0.75,
+                position: {x: this.lives.length*70*0.75, y:0}
+            })
+            this.liveGague.addChild(life)
+            this.lives.push(life)
+        }
+        for(let i=0;i<this.lives.length;i++){
+            this.lives[i].texture = i >= sys.live ? Img.texture.ui_heart : Img.texture.ui_heartEmpty
+        }
+    }
+
+
 
     updateBossHealth(){
         this.bossHealth.visible = !!gm.boss && gm.boss.health > 0
@@ -1796,9 +1818,6 @@ class GameUI extends GameObject{
     updateTimer(){
         this.timer.visible = sys.timer > 0
         this.timer.text = String(Math.ceil(sys.timer / 60)).padStart(2,'0')
-    }
-    updateRound(){
-        this.round.text = `ROUND ${String(sys.round)} / ${String(sys.roundCount)}`
     }
 
     updateEnemyblockData(){
@@ -1966,8 +1985,8 @@ export class SystemManager {
         this.totalScore = 0
 
         this.roundTime = 30
-        this.roundCount = 4
-        this.round = 0
+        this.liveMax = 4
+        this.live = 0
 
         this.shopData = {
             leftEnemy: '',
@@ -2045,9 +2064,10 @@ export class SystemManager {
         gm.ui.updateTimer()
     }
 
-    setRound(value){
-        this.round = value
-        gm.ui.updateRound()
+    setLive(value){
+        this.live = value
+        if(this.liveMax < this.live){this.liveMax = this.live}
+        gm.ui.updateLive()
     }
 
     setGoalScore(value){
@@ -2070,11 +2090,12 @@ export class SystemManager {
     }
 
     startStage(){
+        return
         if(this.stage == 0){
             this.firstStage()
         }
         gm.endAllRoutine(true)
-        this.setRound(0)
+        this.setLive(0)
         this.score = 0
         this.openShop()
         // this.startRound()
@@ -2095,11 +2116,10 @@ export class SystemManager {
 
     startRound(){
         gm.ui.hideShop()
+        this.setLive(this.liveMax)
         gm.startRoutine("round",function(){
-            if(this.whenTime(0)){
-                sys.beforeRound()
-            }
             if(this.whenTime(60)){
+                gm.effectBox.stageAlert(sys.stage)
                 sys.setTime(sys.roundTime*60)
             }
             if(this.whileTime(0,sys.timer > 0)){
@@ -2113,19 +2133,18 @@ export class SystemManager {
             if(this.whenTime(0)){
                 sys.roundEnd()
             }
-            if(this.whenTime(60)){
+            if(this.whenTime(120)){
                 if(sys.score > sys.goalScore){
                     sys.stageEnd()
                 }else{
                     sys.startRound()
+                    sys.setLive(sys.live - 1)
                 }
             }
         })
     }
 
     beforeRound(){
-        if(this.round == 0) gm.effectBox.stageAlert(this.stage)
-        this.setRound(this.round + 1)
     }
 
     roundEnd(){
@@ -2143,6 +2162,10 @@ export class SystemManager {
         this.stage++
         this.setGoalScore(Math.floor(this.goalScore * 1.5))
         this.startStage() // 다음 라운드 시작
+    }
+
+    playerKilled(){
+        this.setLive(this.live - 1)
     }
 }
 
@@ -2168,7 +2191,8 @@ export class GameManager extends SceneObject {
 
         this.playLayer = new Container()
         this.enemyLayer = new Container()
-        this.itemsLayer = new Container()
+        this.pOptionLayer = new Container()
+        this.pShotLayer = new Container({alpha:0.5})
         this.bulletLayer = new Container()
 
         this.efcEnemyUnder = new Container()
@@ -2178,7 +2202,7 @@ export class GameManager extends SceneObject {
         this.effectBox = new EffectPlayBox()
 
         this.addUpdate(this.bullets, this.enemys, this.effects, this.items, this.ui)
-        this.gameLayer.addChild(this.efcEnemyUnder,this.enemyLayer, this.playLayer, this.itemsLayer, this.bulletLayer, this.efcBulletAbove)
+        this.gameLayer.addChild(this.efcEnemyUnder,this.enemyLayer, this.pShotLayer, this.playLayer, this.pOptionLayer, this.bulletLayer, this.efcBulletAbove)
 
         this.gameBackGround = new Container()
         this.backGround = Img.sprite('rect', [gameData.resolution[0], gameData.resolution[1]], 'rgb(26, 26, 26)',{anchor:0})
@@ -2293,7 +2317,7 @@ export class GameManager extends SceneObject {
         const item = new Item(type)
         item.set(pos)
         this.items.push(item) // 오브젝트 업데이트
-        this.itemsLayer.addChild(item) // 스프라이트 레이어
+        this.pOptionLayer.addChild(item) // 스프라이트 레이어
         return item
     }
     /** @param {Container} parent
@@ -2340,7 +2364,7 @@ export class GameManager extends SceneObject {
         }
         for(let enemy of this.enemys){
             if(enemy.health <= 0){continue}
-            enemy.kill()
+            enemy.kill('system')
         }
     }
 

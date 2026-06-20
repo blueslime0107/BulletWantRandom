@@ -115,12 +115,18 @@ const Items = {
     itemPlayer: () => cropImg(Img.assets.item, 0, 128, 64, 64, 6, 2),
 }
 
+const UI = {
+    ui_heartEmpty: () => cropImg(Img.assets.utility, 0, 0, 64, 64),
+    ui_heart: () => cropImg(Img.assets.utility, 64, 0, 64, 64),
+}
+
 const Textures = {
     ...Stands,
     ...Enemys,
     ...Bullets,
     ...PlayerThings,
     ...Items,
+    ...UI,
 
     rect: function () {
         let g = new Graphics();
