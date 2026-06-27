@@ -260,7 +260,7 @@ class Enemy extends ShotObject {
 
     triggerItem(trigger){
         for(let item of this.items){
-            item[trigger].call(this)
+            item[trigger]?.call(this)
         }
     }
 
@@ -939,6 +939,46 @@ class Player extends GameObject {
         this.updateMove()
         this.updateOptions()
         this.updateShots()
+        if(Input.isPressed(KeyBind.SUBKEY)){
+            const sprite = new GameObject({
+                position: {x:this.x, y:this.y}
+            })
+            const baseSprite = Img.sprite('circle', 100, 'rgba(255, 255, 255, 0.56)')
+            sprite.addChild(baseSprite)
+            gm.efcBulletAbove.addChild(sprite)
+            gm.addUpdate(sprite)
+            sprite.MoveDir(-90,1)
+            sprite.startRoutine("test",function(self){
+                if(this.whileFrame(10)){
+                    self.scale.x = frameMove(1,2,this.repeat,10,Easing.linear)
+                    self.radius = self.scale.x * 50
+                    self.scale.y = self.scale.x
+                }
+                this.whenTime(60)
+                if(this.whileFrame(10)){
+                    self.scale.x = frameMove(2,0,this.repeat,10,Easing.linear)
+                    self.radius = self.scale.x * 50
+                    self.scale.y = self.scale.x
+                }
+                if(this.whenTime(0)){
+                    self.die()
+                }
+            })
+            sprite.startRoutine("test2",function(self){
+                if(this.whileTime(0)){
+                    for(let bullet of gm.getBullets()){
+                        if(collideCircle(bullet,self)){
+                            bullet.kill()
+                        }
+                    }
+                    for(let enemy of gm.getEnemys()){
+                        if(collideCircle(enemy,self)){
+                            enemy.damage(1)
+                        }
+                    }
+                }
+            })
+        }
         this.updateSprite()
     }
 
@@ -1036,6 +1076,12 @@ class Player extends GameObject {
         })
     }
     getGodTime(time){
+        if(time == 0){
+            this.endRoutine("godTime")
+            this.baseSprite.alpha = 1
+            this.baseSprite.tint = 0xffffff
+            this.godMode = false
+        }
         this.startRoutine("godTime",function(self){
             if(this.whenTime(0)){
                 self.baseSprite.alpha = 0.7
@@ -1343,6 +1389,7 @@ class EffectPlayBox {
     init(){
         this.initRoundAlert()
         this.initRoundScoreAlert()
+        this.initPlayerKillCircle()
     }
 
     initRoundAlert(){
@@ -1362,6 +1409,44 @@ class EffectPlayBox {
     }
 
     initRoundScoreAlert(){
+        this._scoreContainer = new Container() 
+        this._redScore = new Text({
+            style: new TextStyle({
+                fontFamily: 'Cafe24Ohsquare',
+                fontSize: 72,
+                fill: 'rgb(255, 60, 60)'
+            }),
+            anchor: 0.5,
+            position:{x:GS*0.5,y:GS*0.5+100},
+            visible: false
+        })
+        this._blueScore = new Text({
+            style: new TextStyle({
+                fontFamily: 'Cafe24Ohsquare',
+                fontSize: 72,
+                fill: 'rgb(47, 78, 255)'
+            }),
+            anchor: 0.5,
+            position:{x:GS*0.5,y:GS*0.5-100},
+            visible: false
+        })
+        this._totalScore = new Text({
+            style: new TextStyle({
+                fontFamily: 'Cafe24Ohsquare',
+                fontSize: 72,
+                fill: 'rgb(255, 255, 255)'
+            }),
+            anchor: 0.5,
+            position:{x:GS*0.5,y:GS*0.5},
+            visible: false
+        })
+        this._scoreContainer.addChild(this._redScore, this._blueScore, this._totalScore)
+        gm.efcEnemyUnder.addChild(this._scoreContainer)
+    }
+
+    initPlayerKillCircle(){
+        this._playerKillCircle = Img.sprite('gradiusCircle', 100, 'rgb(255,0,0)',{visible:false})
+        gm.efcBulletAbove.addChild(this._playerKillCircle)
     }
 
     stageAlert(num){
@@ -1374,6 +1459,47 @@ class EffectPlayBox {
             }
             if(this.whenTime(60)){
                 self.MoveTime(pos(-200,GS*0.5), 30, Easing.easeOutCubic)
+            }
+        })
+    }
+
+    scoreAlert(){
+        gm.endRoutine('scoreAlert',true)
+        this._redScore.text = sys.redScore
+        this._blueScore.text = sys.blueScore
+        this._totalScore.text = sys.totalScore
+        gm.startRoutine('scoreAlert',function(){
+            if(this.whileFrame(30)){
+                gm.effectBox._redScore.visible = true
+                gm.effectBox._blueScore.visible = true
+                gm.effectBox._redScore.scale.x = frameMove(0,1,this.repeat,this.time,Easing.easeOutCubic)
+                gm.effectBox._redScore.scale.y = frameMove(0,1,this.repeat,this.time,Easing.easeOutCubic)
+                gm.effectBox._blueScore.scale.x = frameMove(0,1,this.repeat,this.time,Easing.easeOutCubic)
+                gm.effectBox._blueScore.scale.y = frameMove(0,1,this.repeat,this.time,Easing.easeOutCubic)
+            }
+            if(this.whenTime(30)){
+                gm.effectBox._redScore.visible = false
+                gm.effectBox._blueScore.visible = false
+                gm.effectBox._totalScore.visible = true
+            }
+            if(this.whileTime(5,this.repeat<12)){
+                gm.effectBox._totalScore.tint = this.repeat % 2 == 0 ? 'rgb(255, 255, 255)' : 'rgb(138, 138, 138)'
+            }
+            if(this.whenTime(0)){
+                gm.effectBox._totalScore.visible = false
+            }
+        })
+    }
+
+    killPlayer(){
+        gm.endRoutine('playerKillCircle',true)
+        gm.startRoutine('playerKillCircle',function(){
+            if(this.whileFrame(30)){
+                gm.effectBox._playerKillCircle.position.set(gm.player.x,gm.player.y)
+                gm.effectBox._playerKillCircle.visible = true
+                gm.effectBox._playerKillCircle.scale.x = frameMove(15,0,this.repeat,this.time,Easing.linear)
+                gm.effectBox._playerKillCircle.scale.y = frameMove(15,0,this.repeat,this.time,Easing.linear)
+                console.log('Player kill circle scale:', gm.effectBox._playerKillCircle.scale.x, gm.effectBox._playerKillCircle.scale.y)
             }
         })
     }
@@ -1484,12 +1610,33 @@ class ShopButton extends Button {
         })
 
         this.data = null
-        const sprite = Img.sprite('rect',120,'rgb(56, 56, 56)',{anchor:0.5})
-        this.addChild(sprite)
+        this.baseSprite = Img.sprite('rect',120,'rgb(56, 56, 56)',{anchor:0.5})
+        this.addChild(this.baseSprite)
+        this.price = new Text({
+            text: "0",
+            style: new TextStyle({
+                fontFamily: 'Cafe24Ohsquare',
+                fontSize: 36,
+                fill: 'rgb(255, 253, 124)',
+                stroke: { color: 'rgba(0, 0, 0, 1)', width: 8 },
+            }),
+            position: {x:0,y:60},
+            anchor: {x:0.5,y:0.5}
+        })
+        this.addChild(this.price)
         
         this.image = new Sprite({anchor:0.5})
         this.addChild(this.image)
     }
+
+    updateData(data,enemy = true){
+        this.data = data
+        this.image.texture = (enemy) ? Textures.itemEnemy[data.imageId] : Textures.itemPlayer[data.imageId]
+        this.price.text = String(data.price || 0)
+        this.baseSprite.tint = data.negative ? 'rgb(255, 119, 119)' : 'rgb(56, 56, 56)'
+        this.toggleValiable(true)
+    }
+
 }
 
 class GameUI extends GameObject{
@@ -1621,6 +1768,7 @@ class GameUI extends GameObject{
             this.enemyItemBtns[i].id = i+2
             this.enemyItemBtns[i].set(170 * i + 85, 220)   
             this.enemyItemBtns[i].onPress = function(){
+                if(this.data.price > sys.coin){return}
                 const d = gm.selectedEnemyItem
                 gm.selectedEnemyItem = this
                 if(d){
@@ -1649,7 +1797,9 @@ class GameUI extends GameObject{
             this.playerItemBtns[i].id = i+6
             this.playerItemBtns[i].set(170 * i + 85, 370)    
             this.playerItemBtns[i].onPress = function(){
+                if(this.data.price > sys.coin){return}
                 gm.player.getItem(this.data)
+                sys.coin -= this.data.price || 0
                 this.toggleValiable(false)
             }        
             this.shopGroup.addItem(this.playerItemBtns[i])
@@ -1663,7 +1813,7 @@ class GameUI extends GameObject{
                 this.SetValueObj(this.scale,'y',isActive ? [1,1.08] : [1.08,1],10,Easing.easeOutCubic)
             },
             onPress: () => {
-                // entry.onPress();
+                sys.openShop()
             },
             position: {x: 170, y:550},
             scale: {x:0,y:1}
@@ -1800,8 +1950,6 @@ class GameUI extends GameObject{
         }
     }
 
-
-
     updateBossHealth(){
         this.bossHealth.visible = !!gm.boss && gm.boss.health > 0
         if(!this.bossHealth.visible) return
@@ -1839,6 +1987,8 @@ class GameUI extends GameObject{
                     onPress: function(){
                         if(gm.selectedEnemyItem){
                             this.sprite.data.getItem(gm.selectedEnemyItem.data)
+                            sys.coin -= gm.selectedEnemyItem.data.price || 0
+                            console.log('Enemy item purchased:', gm.selectedEnemyItem.data)
                             const d = gm.selectedEnemyItem // 임시 저장
                             gm.selectedEnemyItem = null // 본인이 아니면 하이라이트 해제를 위한 초기화
                             d.toggleValiable(false)
@@ -1880,8 +2030,10 @@ class GameUI extends GameObject{
                     self.SetValueObj(self.shopButtons[i].scale,'x',1,60,Easing.easeOutBack)
                 }
             }
-            if(this.whenTime(20)){
-                gm.setInputGroup(self.shopGroup)
+            if(gm.inputGroup != self.shopGroup){
+                if(this.whenTime(20)){
+                    gm.setInputGroup(self.shopGroup)
+                }
             }
         })
     }
@@ -1895,14 +2047,10 @@ class GameUI extends GameObject{
         this.enemyRight.toggleValiable(true)
 
         for(let i=0;i<4;i++){
-            this.enemyItemBtns[i].data = data.enemyItems[i]
-            this.enemyItemBtns[i].image.texture = Textures.itemEnemy[data.enemyItems[i].imageId]
-            this.enemyItemBtns[i].toggleValiable(true)
+            this.enemyItemBtns[i].updateData(data.enemyItems[i],true)
         }
         for(let i=0;i<4;i++){
-            this.playerItemBtns[i].data = data.playerItems[i]
-            this.playerItemBtns[i].image.texture = Textures.itemPlayer[data.playerItems[i].imageId]
-            this.playerItemBtns[i].toggleValiable(true)
+            this.playerItemBtns[i].updateData(data.playerItems[i],false)
         }
     }
     hideShop(){
@@ -1963,6 +2111,10 @@ class EnemyData {
         this.red = value
         this.blockUI.updateData(this)
     }
+
+    setHealth(value){
+        this.health = value
+    }
 }
 
 export class SystemManager {
@@ -1980,7 +2132,7 @@ export class SystemManager {
 
         this.blueScore = 0
         this.redScore = 1
-        this.coin = 0
+        this.coin = 10
         this.score = 0
         this.totalScore = 0
 
@@ -2085,30 +2237,36 @@ export class SystemManager {
     firstStage(){
         this.addEnemy(enemyArcaive.rush)
         this.addEnemy(enemyArcaive.smallBullet)
+        this.enemys[0].getItem(enemyItem.coin)
         this.setGoalScore(5000)
         this.stage = 1
     }
 
     startStage(){
-        return
         if(this.stage == 0){
             this.firstStage()
         }
-        gm.endAllRoutine(true)
-        this.setLive(0)
+        this.setLive(this.liveMax)
         this.score = 0
         this.openShop()
         // this.startRound()
     }
 
     openShop(){
+        const eNegList = Object.keys(enemyItem).filter(key => enemyItem[key].negative)
+        const eNotNegList = Object.keys(enemyItem).filter(key => !enemyItem[key].negative)
         const elist = Object.keys(enemyArcaive)
         const eilist = Object.keys(enemyItem)
         const pilist = Object.keys(playerItem)
         this.shopData = {
             leftEnemy: enemyArcaive[elist[getRandom(0, elist.length-1)]],
             rightEnemy: enemyArcaive[elist[getRandom(0, elist.length-1)]],
-            enemyItems: Array.from({length: 4}, () => enemyItem[eilist[getRandom(0, eilist.length-1)]]),
+            enemyItems: [
+                enemyItem[eNegList[getRandom(0, eNegList.length-1)]],
+                enemyItem[eNegList[getRandom(0, eNegList.length-1)]],
+                enemyItem[eNotNegList[getRandom(0, eNotNegList.length-1)]],
+                enemyItem[eNotNegList[getRandom(0, eNotNegList.length-1)]]
+            ],
             playerItems: Array.from({length: 4}, () => playerItem[pilist[getRandom(0, pilist.length-1)]]),
         }
         gm.ui.openShop()
@@ -2116,7 +2274,7 @@ export class SystemManager {
 
     startRound(){
         gm.ui.hideShop()
-        this.setLive(this.liveMax)
+        gm.endRoutine('round',true)
         gm.startRoutine("round",function(){
             if(this.whenTime(60)){
                 gm.effectBox.stageAlert(sys.stage)
@@ -2133,12 +2291,19 @@ export class SystemManager {
             if(this.whenTime(0)){
                 sys.roundEnd()
             }
-            if(this.whenTime(120)){
-                if(sys.score > sys.goalScore){
+            if(sys.score > sys.goalScore){
+                if(this.whenTime(120)){
                     sys.stageEnd()
-                }else{
+                }
+            }else{
+                if(this.whenTime(120)){
+                    gm.effectBox.killPlayer()
+                }
+                if(this.whenTime(30)){
+                    gm.player.damage()
+                }
+                if(this.whenTime(30)){
                     sys.startRound()
-                    sys.setLive(sys.live - 1)
                 }
             }
         })
@@ -2149,23 +2314,29 @@ export class SystemManager {
 
     roundEnd(){
         gm.killAll()
+        gm.player.getGodTime(0)
+        gm.effectBox.scoreAlert()
         this.score += this.totalScore
         this.blueScore = 0
         this.redScore = 1
+        
     }
 
     stageEnd(){
         gm.killAll()
         this.blueScore = 0
         this.redScore = 1
-        gm.endAllRoutine()
         this.stage++
-        this.setGoalScore(Math.floor(this.goalScore * 1.5))
+        this.setGoalScore(Math.floor(this.goalScore * 2))
         this.startStage() // 다음 라운드 시작
     }
 
     playerKilled(){
         this.setLive(this.live - 1)
+    }
+
+    terminatePlayer(){
+        gm.effectBox.killPlayer()
     }
 }
 

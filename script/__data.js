@@ -85,7 +85,8 @@ const KeyBind = {
     EIGHT: [KeyCode.Num8, KeyCode.Numpad8],
     NINE: [KeyCode.Num9, KeyCode.Numpad9],
     OK: [KeyCode.Z, KeyCode.Enter],
-    CANCEL: [KeyCode.X, KeyCode.Escape, KeyCode.Backspace],
+    SUBKEY: [KeyCode.X],
+    CANCEL: [KeyCode.Escape, KeyCode.Backspace],
     UP: [KeyCode.ArrowUp],
     DOWN: [KeyCode.ArrowDown],
     LEFT: [KeyCode.ArrowLeft],
@@ -242,6 +243,12 @@ const gameTxtsty = {
         fill: 'rgba(255, 255, 255, 1)',
         stroke: { color: 'rgba(0, 0, 0, 1)', width: 6 },
         align: 'center'
+    },
+    uiText: {
+        fontFamily: 'Cafe24Ohsquare',
+        fontSize: 72,
+        fill: 'rgb(255, 255, 255)',
+        stroke: { color: 'rgba(0, 0, 0, 1)', width: 8 },
     }
 }
 

@@ -233,18 +233,22 @@ const enemyArcaive = {
 const enemyItem = {
     coin: {
         imageId: 0,
+        price:8,
         onDeath: function(){
             sys.coin += 1
         }
     },
     bulletClear: {
-        imageId: 1
+        imageId: 1,
+        price:10
     },
     killCircle: {
-        imageId: 2
+        imageId: 2,
+        price:12
     },
     levelUp: {
         temporary: true,
+        negative: true,
         imageId: 3,
         onEquip: function(){
             this.setLevel(this.level+1)
@@ -254,6 +258,7 @@ const enemyItem = {
     },
     counterBullet: {
         imageId: 4,
+        negative: true,
         onDeath: function(){
             const enemy = this
             gm.startRoutine("counterBullet",function(self){
@@ -264,13 +269,25 @@ const enemyItem = {
         }
     },
     healthUP: {
-        imageId: 5
+        imageId: 5,
+        temporary: true,
+        negative: true,
+        onEquip: function(){
+            this.setHealth(this.health*2)
+        }
     },
     luckPrice: {
-        imageId: 6
+        imageId: 6,
+        price:7,
+        onDeath: function(){
+        }
     },
     barrier: {
-        imageId: 7
+        imageId: 7,
+        negative: true,
+        onEquip: function(){
+            this.setHealth(this.health*2)
+        }
     }
 }
 

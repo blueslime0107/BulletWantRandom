@@ -15,6 +15,7 @@ export class Routine {
         this.routeAllCleared = false
         this.debugTriggered = false
         this.count = 0 // 마킹용
+        this.time = 0
     }
 
     update() {
@@ -94,6 +95,7 @@ export class Routine {
         return false
     }
     whileFrame(frame){
+        this.time = frame
         return this.whileTime(0,this.repeat<frame)
     }
     end() {
@@ -205,6 +207,15 @@ export const GameObjectBase = Base => class extends Base {
         for(let obj of this.updateObjects){
             obj.lateUpdate?.()
         }
+        let w = 0;
+        for (let i = 0; i < this.updateObjects.length; i++) {
+            if (this.updateObjects[i]._killed) {
+                if (this.updateObjects[i].parent) this.updateObjects[i].parent.removeChild(this.updateObjects[i]);
+            } else {
+                this.updateObjects[w++] = this.updateObjects[i];
+            }
+        }
+        this.updateObjects.length = w;
     }
     endRoutine(tag, instant = false) {
         // 태그 기반 제거
