@@ -16,8 +16,8 @@ const enemyArcaive = {
     smallBullet: {
         enemy: EData.normal,
         health: 5,
-        blue: 0,
-        red: 1,
+        blue: 20,
+        red: 0,
         spawnRate: 120,
         spell: function (self) {
             if(this.whenTime(0)){
@@ -33,8 +33,8 @@ const enemyArcaive = {
     redLazer: {
         enemy: EData.redLazer,
         health: 2,
-        blue: 2,
-        red: 3,
+        blue: 10,
+        red: 1,
         spawnRate: 40,
         spell: function (self) {
             if(this.whenTime(0)){
@@ -64,8 +64,8 @@ const enemyArcaive = {
     orangeLazer: {
         enemy: EData.orangeLazer,
         health: 5,
-        blue: 2,
-        red: 3,
+        blue: 5,
+        red: 1,
         spawnRate: 120,
         spell: function (self) {
             if(this.whenTime(0)){
@@ -87,9 +87,9 @@ const enemyArcaive = {
     },
     growingBullet: {
         enemy: EData.cyanBigger,
-        health: 2,
-        blue: 2,
-        red: 3,
+        health: 20,
+        blue: 30,
+        red: 0,
         spawnRate: 80,
         spell: function (self) {
             if(this.whenTime(0)){
@@ -109,9 +109,9 @@ const enemyArcaive = {
     },
     homingBullet: {
         enemy: EData.pinkHoming,
-        health: 2,
-        blue: 2,
-        red: 3,
+        health: 15,
+        blue: 15,
+        red: 1,
         spawnRate: 74,
         spell: function (self) {
             if(this.whenTime(0)){
@@ -136,9 +136,9 @@ const enemyArcaive = {
     },
     electricRush: {
         enemy: EData.yellowSpread,
-        health: 2,
-        blue: 2,
-        red: 3,
+        health: 10,
+        blue: 40,
+        red: 0,
         spawnRate: 88,
         spell: function (self) {
             if(this.whenTime(0)){
@@ -155,9 +155,9 @@ const enemyArcaive = {
     },
     electricRush2: {
         enemy: EData.greenSpread,
-        health: 2,
-        blue: 2,
-        red: 3,
+        health: 20,
+        blue: 50,
+        red: 0,
         spawnRate: 77,
         spell: function (self) {
             if(this.whenTime(0)){
@@ -175,9 +175,9 @@ const enemyArcaive = {
     },
     bomb1: {
         enemy: EData.whiteBomb,
-        health: 2,
-        blue: 2,
-        red: 3,
+        health: 10,
+        blue: 20,
+        red: 2,
         spawnRate: 128,
         spell: function (self) {
             if(this.whenTime(0)){
@@ -199,9 +199,9 @@ const enemyArcaive = {
     },
     bomb2: {
         enemy: EData.redCross,
-        health: 2,
-        blue: 2,
-        red: 3,
+        health: 10,
+        blue: 20,
+        red: 2,
         spawnRate: 128,
         spell: function (self) {
             if(this.whenTime(0)){
@@ -238,13 +238,12 @@ const enemyItem = {
             sys.coin += 1
         }
     },
-    bulletClear: {
-        imageId: 1,
-        price:10
-    },
     killCircle: {
         imageId: 2,
-        price:12
+        price:12,
+        onDeath: function(){
+            gm.spawnKillCircle(this.pos)
+        }
     },
     levelUp: {
         temporary: true,
@@ -261,9 +260,10 @@ const enemyItem = {
         negative: true,
         onDeath: function(){
             const enemy = this
+            const dir = lookPoint(enemy,gm.player)
             gm.startRoutine("counterBullet",function(self){
                 if(this.whileTime(5,this.repeat<6)){
-                    gm.spawnBullet(BData.kunai,1,enemy).MoveDir(lookPoint(enemy,gm.player)+getRandom(-5,5),10)
+                    gm.spawnBullet(BData.kunai,1,enemy).MoveDir(dir+getRandom(-5,5),10)
                 }
             })
         }
@@ -274,19 +274,15 @@ const enemyItem = {
         negative: true,
         onEquip: function(){
             this.setHealth(this.health*2)
-        }
-    },
-    luckPrice: {
-        imageId: 6,
-        price:7,
-        onDeath: function(){
+            this.setBlue(this.blue*2)
+            this.setRed(this.red*2)
         }
     },
     barrier: {
         imageId: 7,
         negative: true,
-        onEquip: function(){
-            this.setHealth(this.health*2)
+        onSpawn: function(){
+            this.getGodTime(60)
         }
     }
 }
@@ -294,12 +290,14 @@ const enemyItem = {
 const playerItem = {
     shotUp: {
         imageId: 0,
+        price: 75,
         onEquip: function(){
             this.power++
         }
     },
     optionCircle: {
         imageId: 1,
+        price: 100,
         onEquip: function(){
             if(!this.options.circle) {
                 this.options.circle = new GameObjectGroup()
@@ -351,6 +349,7 @@ const playerItem = {
     },
     optionTri: {
         imageId: 2,
+        price: 50,
         onEquip: function(){
             if(!this.options.triangle) {
                 this.options.triangle = new GameObjectGroup()
@@ -384,19 +383,20 @@ const playerItem = {
             gm.pOptionLayer.addChild(option)
         }
     },
-    optionSquare: {
-        imageId: 3
-    },
+    // optionSquare: {
+    //     imageId: 3
+    // },
     speedUp: {
         imageId: 4,
+        price: 50,
         onEquip: function(){
             this.speed += 2
         }
     },
-    barrier: { 
-        imageId: 5
-    },
-    grazeArea: {
-        imageId: 6
-    }
+    // barrier: { 
+    //     imageId: 5
+    // },
+    // grazeArea: {
+    //     imageId: 6
+    // }
 }

@@ -119,6 +119,8 @@ class Enemy extends ShotObject {
         this.level = 1
         this.items = []
         this.data = null
+
+        this.godMode = false
     }
 
     applyEnemyData(enemy){
@@ -144,7 +146,7 @@ class Enemy extends ShotObject {
         }else{ // 단일 스프라이트
             this.baseSprite.texture = this.texture
         }
-
+        this.triggerItem('onSpawn')
     }
 
     activeSpell(spell){
@@ -160,6 +162,7 @@ class Enemy extends ShotObject {
     }
 
     damage(count){
+        if(this.godMode){return}
         this.health -= count
         if(this.health <= 0){
             this.kill()
@@ -267,6 +270,27 @@ class Enemy extends ShotObject {
     whenDeadScore(){
         sys.blueScore += this.blue
         sys.redScore += this.red
+    }
+
+    getGodTime(time){
+        if(time == 0){
+            this.endRoutine("godTime")
+            this.baseSprite.alpha = 1
+            this.baseSprite.tint = 0xffffff
+            this.godMode = false
+        }
+        this.startRoutine("godTime",function(self){
+            if(this.whenTime(0)){
+                self.baseSprite.alpha = 0.7
+                self.baseSprite.tint = 'rgb(0, 119, 255)'
+                self.godMode = true
+            }
+            if(this.whenTime(time)){
+                self.baseSprite.alpha = 1
+                self.baseSprite.tint = 0xffffff
+                self.godMode = false
+            }
+        })
     }
 }
 
@@ -869,6 +893,42 @@ class Item extends GameObject {
 
     collected(){
         Am.playSFX("item")
+    }
+}
+
+class KillCircle extends GameObject {
+    constructor(pos){
+        super()
+        this.set(pos)
+        this.baseSprite = Img.sprite('circle', 100, 'rgba(255, 255, 255, 0.56)')
+        this.addChild(this.baseSprite)
+        gm.efcBulletAbove.addChild(this)
+        gm.addUpdate(this)
+        this.startRoutine("test",function(self){
+            if(this.whileFrame(20)){
+                self.scale.x = frameMove(1,2,this.repeat,this.time,Easing.linear)
+                self.radius = self.scale.x * 50
+                self.alpha = frameMove(1,0,this.repeat,this.time,Easing.linear)
+                self.scale.y = self.scale.x
+            }
+            if(this.whenTime(0)){
+                self.die()
+            }
+        })
+    }
+
+    update(){
+        super.update()
+        for(let bullet of gm.getBullets()){
+            if(collideCircle(bullet,this)){
+                bullet.kill()
+            }
+        }
+        for(let enemy of gm.getEnemys()){
+            if(collideCircle(enemy,this)){
+                enemy.damage(1)
+            }
+        }
     }
 }
 
@@ -1813,6 +1873,10 @@ class GameUI extends GameObject{
                 this.SetValueObj(this.scale,'y',isActive ? [1,1.08] : [1.08,1],10,Easing.easeOutCubic)
             },
             onPress: () => {
+                if(sys.coin < sys.rerollPrice){return}
+                sys.coin -= sys.rerollPrice
+                sys.rerollPrice *= 2
+                gm.ui.rerollBtn.price.text = String(sys.rerollPrice)
                 sys.openShop()
             },
             position: {x: 170, y:550},
@@ -1824,6 +1888,18 @@ class GameUI extends GameObject{
             anchor: 0.5,
             style: Data.styles.menuItem
         }))       
+        this.rerollBtn.price = new Text({
+            text: String(sys.rerollPrice),
+            style: new TextStyle({
+                fontFamily: 'Cafe24Ohsquare',
+                fontSize: 36,
+                fill: 'rgb(255, 253, 124)',
+                stroke: { color: 'rgba(0, 0, 0, 1)', width: 8 },
+            }),
+            position: {x:0,y:60},
+            anchor: {x:0.5,y:0.5}
+        })
+        this.rerollBtn.addChild(this.rerollBtn.price)   
         this.shopGroup.addItem(this.rerollBtn)
         addButton(this.rerollBtn)
 
@@ -2150,6 +2226,8 @@ export class SystemManager {
         this.timer = 0
         
         this.enemys = [ ]
+
+        this.rerollPrice = 5
     }
 
     set coin(value){
@@ -2238,7 +2316,7 @@ export class SystemManager {
         this.addEnemy(enemyArcaive.rush)
         this.addEnemy(enemyArcaive.smallBullet)
         this.enemys[0].getItem(enemyItem.coin)
-        this.setGoalScore(5000)
+        this.setGoalScore(10000)
         this.stage = 1
     }
 
@@ -2248,6 +2326,7 @@ export class SystemManager {
         }
         this.setLive(this.liveMax)
         this.score = 0
+        this.rerollPrice = 5
         this.openShop()
         // this.startRound()
     }
@@ -2259,15 +2338,15 @@ export class SystemManager {
         const eilist = Object.keys(enemyItem)
         const pilist = Object.keys(playerItem)
         this.shopData = {
-            leftEnemy: enemyArcaive[elist[getRandom(0, elist.length-1)]],
-            rightEnemy: enemyArcaive[elist[getRandom(0, elist.length-1)]],
+            leftEnemy: enemyArcaive[elist[getRandom(0, elist.length)]],
+            rightEnemy: enemyArcaive[elist[getRandom(0, elist.length)]],
             enemyItems: [
-                enemyItem[eNegList[getRandom(0, eNegList.length-1)]],
-                enemyItem[eNegList[getRandom(0, eNegList.length-1)]],
-                enemyItem[eNotNegList[getRandom(0, eNotNegList.length-1)]],
-                enemyItem[eNotNegList[getRandom(0, eNotNegList.length-1)]]
+                enemyItem[eNegList[getRandom(0, eNegList.length)]],
+                enemyItem[eNegList[getRandom(0, eNegList.length)]],
+                enemyItem[eNotNegList[getRandom(0, eNotNegList.length)]],
+                enemyItem[eNotNegList[getRandom(0, eNotNegList.length)]]
             ],
-            playerItems: Array.from({length: 4}, () => playerItem[pilist[getRandom(0, pilist.length-1)]]),
+            playerItems: Array.from({length: 4}, () => playerItem[pilist[getRandom(0, pilist.length)]]),
         }
         gm.ui.openShop()
     }
@@ -2327,7 +2406,7 @@ export class SystemManager {
         this.blueScore = 0
         this.redScore = 1
         this.stage++
-        this.setGoalScore(Math.floor(this.goalScore * 2))
+        this.setGoalScore(Math.floor(this.goalScore * 5))
         this.startStage() // 다음 라운드 시작
     }
 
@@ -2521,6 +2600,9 @@ export class GameManager extends SceneObject {
         this.ui.bossBottomAlert.visible = true
         this.enemys.push(this.boss) // 오브젝트 업데이트
         this.enemyLayer.addChild(this.boss) // 스프라이트 레이어
+    }
+    spawnKillCircle(pos){
+        let circle = new KillCircle(pos)
     }
     activeBoss(spell){
         this.boss.activeSpell(spell)
