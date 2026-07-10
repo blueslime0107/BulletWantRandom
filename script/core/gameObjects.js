@@ -217,7 +217,12 @@ export const GameObjectBase = Base => class extends Base {
         }
         this.updateObjects.length = w;
     }
-    endRoutine(tag, instant = false) {
+    /**
+     * 
+     * @param {string} tag 이 루틴의 태그
+     * @param {boolean} instant false이면 루틴 내부에서 end() 호출 시 제거
+     */
+    endRoutine(tag, instant = true) {
         // 태그 기반 제거
         for (let i = this.routes.length - 1; i >= 0; i--) {
             const r = this.routes[i];
@@ -229,7 +234,7 @@ export const GameObjectBase = Base => class extends Base {
             }
         }
     }
-    endAllRoutine(instant = false) {
+    endAllRoutine(instant = true) {
         // 태그 기반 제거
         for (let i = this.routes.length - 1; i >= 0; i--) {
             const r = this.routes[i];
@@ -629,11 +634,7 @@ export class Bitmap extends PIXI.Sprite{
     }
 
     _ensureTexture() {
-        // texture가 유효하지 않거나 손실되면 재생성
-        if (!this.texture || !this.texture.valid || this.texture.source?.destroyed) {
-            console.warn('[Bitmap] Texture invalid or destroyed, recreating...');
-            this._initTexture();
-        }
+        this._initTexture();
     }
 
     clear(){
@@ -647,7 +648,7 @@ export class Bitmap extends PIXI.Sprite{
         const ctx = this.context;
         ctx.fillStyle = color;
         ctx.fillRect(x, y, width, height);
-        this._updateTexture('drawRect');
+        this._updateTexture();
     }
 
     strokeRect(x, y, width, height, lineWidth = 2, color = 0xffffff) {
@@ -656,7 +657,7 @@ export class Bitmap extends PIXI.Sprite{
         ctx.strokeStyle = color;
         ctx.lineWidth = lineWidth;
         ctx.strokeRect(x, y, width, height);
-        this._updateTexture('strokeRect');
+        this._updateTexture();
     }
 
     blt(texture, sx, sy, sw, sh, dx, dy, dw, dh) {
@@ -672,10 +673,33 @@ export class Bitmap extends PIXI.Sprite{
             dx, dy, dw, dh
         );
 
-        this._updateTexture('blt');
+        this._updateTexture();
     }
 
-    _updateTexture(method) {
+    drawCircle(x,y,radius,color,startAngle=0, endAngle=360){
+        this._ensureTexture();
+        const ctx = this.context;
+        ctx.fillStyle = color;
+        ctx.beginPath();
+        ctx.arc(x, y, radius, radian(startAngle), radian(endAngle));
+        ctx.closePath();
+        ctx.fill();
+        this._updateTexture();
+    }
+
+    strokeCircle(x,y,radius,lineWidth=2,color,startAngle=0, endAngle=360){
+        this._ensureTexture();
+        const ctx = this.context;
+        ctx.strokeStyle = color;
+        ctx.lineWidth = lineWidth;
+        ctx.beginPath();
+        ctx.arc(x, y, radius, radian(startAngle), radian(endAngle));
+        ctx.stroke();
+        this._updateTexture();
+    }
+
+
+    _updateTexture() {
         if (!this.texture) return;
         
         // BaseTexture 동기화
