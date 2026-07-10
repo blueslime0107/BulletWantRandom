@@ -2379,7 +2379,7 @@ export class SystemManager {
     }
 
     set redScore(value){
-        this._redScore = value
+        this._redScore = Math.floor(value)
         if(!gm){return}
         gm.ui.redScore.text = String(this._redScore)
         this.updateTotalScore()
