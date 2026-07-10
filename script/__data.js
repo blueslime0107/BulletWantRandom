@@ -594,6 +594,24 @@ const EFC = {
                 }
             }
         }
+    },
+    text: {
+        /**@type {{ text:string, color:string }}*/op: null,
+        init: function (op) {
+            this.text = new Text({ text: op.text, style: Data.styles.gagueText, tint: op.color, anchor: 0.5, scale:0.8, align: 'center' })
+            this.scale.y = 0
+            this.addChild(this.text)
+        },
+        update(self) {
+            if(this.whileFrame(5)){
+                self.scale.y = frameMove(0,1,this.repeat,this.time,Easing.linear)
+            }
+            if(this.whenTime(20)){}
+            if(this.whileFrame(5)){
+                self.scale.y = frameMove(1,0,this.repeat,this.time,Easing.linear)
+            }
+            this.$die()
+        }
     }
 }
 

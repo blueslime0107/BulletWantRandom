@@ -933,8 +933,9 @@ class Item extends GameObject {
 }
 
 class KillCircle extends GameObject {
-    constructor(pos){
+    constructor(pos,radius=50){
         super()
+        this.endRadius = radius
         this.set(pos)
         this.baseSprite = Img.sprite('circle', 100, 'rgba(255, 255, 255, 0.56)')
         this.addChild(this.baseSprite)
@@ -942,7 +943,7 @@ class KillCircle extends GameObject {
         gm.addUpdate(this)
         this.startRoutine("test",function(self){
             if(this.whileFrame(20)){
-                self.scale.x = frameMove(1,2,this.repeat,this.time,Easing.linear)
+                self.scale.x = frameMove(1,this.endRadius/25,this.repeat,this.time,Easing.linear)
                 self.radius = self.scale.x * 50
                 self.alpha = frameMove(1,0,this.repeat,this.time,Easing.linear)
                 self.scale.y = self.scale.x
@@ -1150,7 +1151,7 @@ class Player extends GameObject {
     }
 
     updateBomb(){
-        if(Input.isPressed(KeyBind.SUBKEY) && this.bombPower >= 100){
+        if(Input.isPressed(KeyBind.SUBKEY)){
             this.spawnBomb()
             this.setBombPower(0)
         }
@@ -1178,6 +1179,9 @@ class Player extends GameObject {
                 self.scale.y = self.scale.x
             }
             if(this.whenTime(0)){
+                const mult = 1 + 0.1 * (self.count / 20)
+                gm.spawnEffect(EFC.text, gm.efcBulletAbove, self, {text: `BONUS MULT\nx${mult.toFixed(1)}`, color: 'rgb(255, 120, 120)'})
+                sys.redScore *= mult
                 self.die()
             }
         })
@@ -1186,6 +1190,7 @@ class Player extends GameObject {
                 for(let bullet of gm.getBullets()){
                     if(collideCircle(bullet,self)){
                         bullet.kill('bonus')
+                        self.count++
                     }
                 }
                 for(let enemy of gm.getEnemys()){
@@ -1796,6 +1801,7 @@ class GameUI extends GameObject{
     }
 
     reset(){
+        gm.ui.enemyBlocks.length = 0
         this.updateEnemyblockData()
         this.updateEnemyblockSpawnRate(0)
         this.hideShop()
@@ -1878,6 +1884,7 @@ class GameUI extends GameObject{
             onPress: function(){
                 sys.addEnemy(this.data)
                 gm.ui.updateShopButtons()
+                this.purchased = true
                 this.toggleValiable(false)
             },
             onToggle: function(toggle){
@@ -2206,8 +2213,10 @@ class GameUI extends GameObject{
     updateShopData(){
         const data = sys.shopData
         this.enemyLeft.data = data.leftEnemy
+        this.enemyLeft.purchased = false
         this.enemyLeft.baseSprite.updateData(data.leftEnemy)
         this.enemyRight.data = data.rightEnemy
+        this.enemyRight.purchased = false
         this.enemyRight.baseSprite.updateData(data.rightEnemy)
 
         for(let i=0;i<4;i++){
@@ -2220,8 +2229,8 @@ class GameUI extends GameObject{
     }
     updateShopButtons(){
         const newEnemyAble = sys.maxEnemyLength > sys.enemys.length
-        this.enemyLeft.toggleValiable(newEnemyAble)
-        this.enemyRight.toggleValiable(newEnemyAble) 
+        this.enemyLeft.toggleValiable(newEnemyAble && !this.enemyLeft.purchased)
+        this.enemyRight.toggleValiable(newEnemyAble && !this.enemyRight.purchased) 
     }
     hideShop(){
         this.endAllRoutine()
@@ -2438,6 +2447,10 @@ export class SystemManager {
     startStage(){
         if(this.stage == 0){
             this.firstStage()
+        }else{
+            for(let enemy of this.enemys){
+                enemy.setLevel(enemy.level+1)
+            }
         }
         this.setLive(this.liveMax)
         this.score = 0
@@ -2721,8 +2734,8 @@ export class GameManager extends SceneObject {
         this.enemys.push(this.boss) // 오브젝트 업데이트
         this.enemyLayer.addChild(this.boss) // 스프라이트 레이어
     }
-    spawnKillCircle(pos){
-        let circle = new KillCircle(pos)
+    spawnKillCircle(pos,radius){
+        let circle = new KillCircle(pos,radius)
     }
     activeBoss(spell){
         this.boss.activeSpell(spell)

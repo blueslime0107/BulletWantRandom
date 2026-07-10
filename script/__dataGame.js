@@ -253,8 +253,8 @@ const enemyItem = {
     killCircle: {
         imageId: 2,
         price:12,
-        onDeath: function(){
-            gm.spawnKillCircle(this.pos)
+        onDeath: function(stack){
+            gm.spawnKillCircle(this.pos,30+20*stack)
         }
     },
     levelUp: {
