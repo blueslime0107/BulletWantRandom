@@ -277,11 +277,36 @@ const bossArcaive = [
             if(this.whenTime(0)){this.frame = 110}
             if(this.whileTime(120)){
                 Am.playSFX("lazer")
-                const neg = this.repeat % 2 == 0 ? 1 : -1
                 for(let i=0;i<360;i+=30){
                     gm.spawnBentLazer(1,self,40).MoveDir(i,6).startRoutine('',function(self){
-                        if(this.whileTime(0)){
-                            self.dir += neg
+                        if(this.whileFrame(60)){
+                            self.dir += 1
+                        }
+                    })
+                    gm.spawnBentLazer(2,self,40).MoveDir(i,6)
+                }
+                self.MoveTime(pos(gm.player.x,GS*0.25+getRandom(-20,40)),60,Easing.easeInCubic)
+            }
+        }
+    },
+    {
+        enemy: EData.cyanBigger,
+        spell: function (self) {
+            if(this.whenTime(0)){this.frame = 110}
+            if(this.whileTime(120)){
+                Am.playSFX("kira1")
+                for(let i=0;i<360;i+=60){
+                    gm.spawnBullet(BData.spear,5,self).MoveDir(i+this.repeat*4.7,4).startRoutine("",function(self){
+                        if(this.whileTime(0,self.count < 3)){
+                            if(self.x < 0 || self.x > GS){
+                                self.dir = 180 - self.dir
+                                self.count++
+                            }
+                            if(self.y < 0 || self.y > GS){
+                                self.dir = -self.dir
+                                self.count++
+                            }
+                            self.setScale(1+this.repeat/60)
                         }
                     })
                 }

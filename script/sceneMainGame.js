@@ -2550,10 +2550,10 @@ export class SystemManager {
                 gm.effectBox.stageAlert(sys.stage)
                 sys.setTime(sys.roundTime*60)
                 Am.playSFX("startStage")
-                sys.spawnBoss(bossArcaive[1])
-                // if(sys.stage % 2 == 0){
-                //     sys.spawnBoss(bossArcaive[sys.stage /2-1])
-                // }
+                // sys.spawnBoss(bossArcaive[2])
+                if(sys.stage % 2 == 0){
+                    sys.spawnBoss(bossArcaive[sys.stage /2-1])
+                }
             }
             if(this.whileTime(0,sys.timer > 0)){
                 gm.ui.updateEnemyblockSpawnRate(this.repeat)
