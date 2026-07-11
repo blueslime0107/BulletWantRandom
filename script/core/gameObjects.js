@@ -745,9 +745,9 @@ export class SceneObject extends GameObject {
         this.inputGroup?.exit();
         this.inputGroup = group;
         if(this.inputGroup == null) return
-        for(let obj of this.inputGroup.items){
-            obj.toggleValiable(true)
-        }
+        // for(let obj of this.inputGroup.items){
+        //     obj.toggleValiable(true)
+        // }
         this.inputGroup.enter();
     }
 

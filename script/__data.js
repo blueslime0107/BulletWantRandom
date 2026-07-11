@@ -27,7 +27,7 @@ const gameData = {
     isPortrait: false,
     noPortrait: true,
     no3dupdate: true,
-    noAudio: true
+    noAudio: false
 }
 
 const BGM = {
@@ -71,6 +71,10 @@ const SFX = {
     releaseAble: "se/se_ch01.wav",
     release: "se/se_focusfix.wav",
     timer: "se/se_nice.wav",
+    lazer: 'se/se_lazer00.wav',
+    startStage: 'se/se_don00.wav',
+    endStage: 'se/se_boon00.wav',
+    penaltyKill: 'se/se_focus.wav',
 }
 
 

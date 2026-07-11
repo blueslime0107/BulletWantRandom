@@ -1112,8 +1112,12 @@ class Player extends GameObject {
         })
     }
     grazed(bullet){
+        Am.playSFX('graze')
         this.setBombPower(this.bombPower + 1)
+        this.triggerItem('onGraze')
     }
+
+
     appear(){
         this.blockMove = true
         this.startRoutine("appear",function(self){
@@ -1151,9 +1155,10 @@ class Player extends GameObject {
     }
 
     updateBomb(){
-        if(Input.isPressed(KeyBind.SUBKEY)){
+        if(Input.isPressed(KeyBind.SUBKEY) && this.bombPower >= 100){
             this.spawnBomb()
             this.setBombPower(0)
+            Am.playSFX('slash')
         }
     }
 
@@ -1182,6 +1187,7 @@ class Player extends GameObject {
                 const mult = 1 + 0.1 * (self.count / 20)
                 gm.spawnEffect(EFC.text, gm.efcBulletAbove, self, {text: `BONUS MULT\nx${mult.toFixed(1)}`, color: 'rgb(255, 120, 120)'})
                 sys.redScore *= mult
+                Am.playSFX(SFX.songPeunMade)
                 self.die()
             }
         })
@@ -1320,6 +1326,12 @@ class Player extends GameObject {
         }
         if(item.onEquip){
             item.onEquip.call(this)
+        }
+    }
+
+    triggerItem(trigger){
+        for(let item of this.items){
+            item.data[trigger]?.call(this, item.stack)
         }
     }
     
@@ -1616,6 +1628,7 @@ class EffectPlayBox {
                 gm.effectBox._redScore.visible = false
                 gm.effectBox._blueScore.visible = false
                 gm.effectBox._totalScore.visible = true
+                Am.playSFX("cardGet")
             }
             if(this.whileTime(5,this.repeat<12)){
                 gm.effectBox._totalScore.tint = this.repeat % 2 == 0 ? 'rgb(255, 255, 255)' : 'rgb(138, 138, 138)'
@@ -1690,12 +1703,19 @@ class GameUIEnemyBlock extends GameObject {
             position: {x:-50,y:-20},
             anchor: {x:0.5,y:0.5}
         })
+        this.spawnRateText = new Text({
+            text:'0',
+            style: Data.styles.enemyBlockText,
+            tint: 'rgb(133, 133, 133)',
+            scale: 0.8,
+            position: {x:60,y:15}
+        })
         this.spawnRate = new Container({position:{x:50,y:40}})
         this.sROutline = Img.sprite('rect', [20, 80], 'rgba(255, 255, 255, 1)',{anchor:{x:0.5,y:1},position:{x:50,y:0}})
         this.sRInBase = Img.sprite('rect', [15, 75], 'rgb(0, 0, 0)',{anchor:{x:0.5,y:1},position:{x:50,y:-2.5}})
         this.sRInBaseGague = Img.sprite('rect', [15, 75], 'rgb(109, 109, 109)',{anchor:{x:0.5,y:1},position:{x:50,y:-2.5}})
         this.spawnRate.addChild(this.sROutline, this.sRInBase, this.sRInBaseGague)
-        this.addChild(this.outLine, this.inBase, this.enemyImage, this.levelText, this.blueText, this.redText, this.crossText, this.spawnRate, this.itemUI, this.healthText)
+        this.addChild(this.outLine, this.inBase, this.enemyImage, this.levelText, this.blueText, this.redText, this.crossText, this.spawnRate, this.itemUI, this.healthText, this.spawnRateText)
 
         this.frame = 0
     }
@@ -1709,6 +1729,7 @@ class GameUIEnemyBlock extends GameObject {
             this.levelText.text = 'LV MAX'
         }
         this.healthText.text = '♥'+ String(this.data.health)
+        this.spawnRateText.text = (this.data.spawnRate/60).toFixed(1) + 's'
 
         const enemyTexture = Textures[this.data.enemy.texture]
         this.enemyImage.texture = enemyTexture
@@ -1754,6 +1775,7 @@ class ShopButton extends Button {
             onHighlight: function(isActive){
                 this.SetValueObj(this.scale,'x',isActive ? [1,1.08] : [1.08,1],10,Easing.easeOutCubic)
                 this.SetValueObj(this.scale,'y',isActive ? [1,1.08] : [1.08,1],10,Easing.easeOutCubic)
+                if(isActive) Am.playSFX('select')
             },
             onPress: () => {
                 // entry.onPress();
@@ -1801,7 +1823,10 @@ class GameUI extends GameObject{
     }
 
     reset(){
+        this.leftSide.removeChildren()
+        this.updateObjects.length = 0
         gm.ui.enemyBlocks.length = 0
+        
         this.updateEnemyblockData()
         this.updateEnemyblockSpawnRate(0)
         this.hideShop()
@@ -1880,12 +1905,14 @@ class GameUI extends GameObject{
             onHighlight: function(isActive){
                 this.SetValueObj(this.scale,'x',isActive ? [1,1.08] : [1.08,1],10,Easing.easeOutCubic)
                 this.SetValueObj(this.scale,'y',isActive ? [1,1.08] : [1.08,1],10,Easing.easeOutCubic)
+                if(isActive) Am.playSFX('select')
             },
             onPress: function(){
                 sys.addEnemy(this.data)
                 gm.ui.updateShopButtons()
                 this.purchased = true
                 this.toggleValiable(false)
+                Am.playSFX('ok')
             },
             onToggle: function(toggle){
                 this.alpha = toggle ? 1 : 0.5
@@ -1939,6 +1966,7 @@ class GameUI extends GameObject{
                         self.angle = Graph.sin(this.repeat, -5,5,20)
                     }
                 })
+                Am.playSFX('ok')
                 gm.ui.updateShopButtons()
             }      
             this.enemyItemBtns[i].onHighlight = function(isActive){
@@ -1946,6 +1974,7 @@ class GameUI extends GameObject{
                 this.endAllRoutine(true)
                 this.SetValueObj(this.scale,'x',isActive ? [1,1.08] : [1.08,1],10,Easing.easeOutCubic)
                 this.SetValueObj(this.scale,'y',isActive ? [1,1.08] : [1.08,1],10,Easing.easeOutCubic)
+                if(isActive) Am.playSFX('select')
             }     
             this.shopGroup.addItem(this.enemyItemBtns[i])
         }
@@ -1961,6 +1990,7 @@ class GameUI extends GameObject{
                 sys.coin -= this.data.price || 0
                 this.toggleValiable(false)
                 gm.ui.updateShopButtons()
+                Am.playSFX('ok')
             }        
             this.shopGroup.addItem(this.playerItemBtns[i])
         }
@@ -1971,6 +2001,7 @@ class GameUI extends GameObject{
             onHighlight: function(isActive){
                 this.SetValueObj(this.scale,'x',isActive ? [1,1.08] : [1.08,1],10,Easing.easeOutCubic)
                 this.SetValueObj(this.scale,'y',isActive ? [1,1.08] : [1.08,1],10,Easing.easeOutCubic)
+                if(isActive) Am.playSFX('select')
             },
             onPress: () => {
                 if(sys.coin < sys.rerollPrice){return}
@@ -1978,6 +2009,7 @@ class GameUI extends GameObject{
                 sys.rerollPrice *= 2
                 gm.ui.rerollBtn.price.text = String(sys.rerollPrice)
                 sys.openShop()
+                Am.playSFX('ok')
             },
             position: {x: 170, y:550},
             scale: {x:0,y:1}
@@ -2009,10 +2041,12 @@ class GameUI extends GameObject{
             onHighlight: function(isActive){
                 this.SetValueObj(this.scale,'x',isActive ? [1,1.08] : [1.08,1],10,Easing.easeOutCubic)
                 this.SetValueObj(this.scale,'y',isActive ? [1,1.08] : [1.08,1],10,Easing.easeOutCubic)
+                if(isActive) Am.playSFX('select')
             },
             onPress: () => {
                 gm.ui.clearShopRoutine()
                 sys.startRound()
+                Am.playSFX('ok')
             },
             position: {x: GS-170, y:550},
             scale: {x:0,y:1}
@@ -2155,6 +2189,7 @@ class GameUI extends GameObject{
                         this.endAllRoutine()
                         this.SetValueObj(this.scale,'x',isActive ? [1,1.08] : [1.08,1],10,Easing.easeOutCubic)
                         this.SetValueObj(this.scale,'y',isActive ? [1,1.08] : [1.08,1],10,Easing.easeOutCubic)
+                        if(isActive) Am.playSFX('select')
                     },
                     onPress: function(){
                         if(gm.selectedEnemyItem){
@@ -2166,6 +2201,7 @@ class GameUI extends GameObject{
                             d.toggleValiable(false)
                             d.onHighlight(false)
                             gm.ui.updateShopButtons()
+                            Am.playSFX('ok')
                         }
                     },
                     onToggle: function(toggle){
@@ -2174,6 +2210,8 @@ class GameUI extends GameObject{
                 }
                 )
                 b.sprite = new GameUIEnemyBlock()
+                b.sprite.startRoutine('update', function(self){if(this.whileTime(0)){self.angle = Graph.sin(this.repeat, -5,5,20)}})
+                this.addUpdate(b.sprite)
                 b.addChild(b.sprite)
                 this.enemyBlocks.push(b)
                 enemy.blockUI = b.sprite
@@ -2231,6 +2269,7 @@ class GameUI extends GameObject{
         const newEnemyAble = sys.maxEnemyLength > sys.enemys.length
         this.enemyLeft.toggleValiable(newEnemyAble && !this.enemyLeft.purchased)
         this.enemyRight.toggleValiable(newEnemyAble && !this.enemyRight.purchased) 
+        console.log(this.enemyLeft.valiable)
     }
     hideShop(){
         this.endAllRoutine()
@@ -2264,6 +2303,8 @@ class EnemyData {
         this.items = []
 
         this.blockUI = null
+
+        this.upgradeBlueRed = data.upgradeBlueRed
     }
 
     getItem(item){
@@ -2424,13 +2465,20 @@ export class SystemManager {
 
     addEnemy(data){
         // 복사해 저장
-        const enemy = new EnemyData(data)
-        this.enemys.push(enemy)
+        // 같은 데이터가 있음
+        const existingEnemy = this.enemys.find(enemy => enemy.enemy === data.enemy);
+        if(existingEnemy){
+            existingEnemy.spawnRate = Math.ceil(existingEnemy.spawnRate * 0.5)
+        }else{
+            const enemy = new EnemyData(data)
+            this.enemys.push(enemy)
+        }
         gm.ui.updateEnemyblockData()
     }
     removeEnemy(data){
         const index = this.enemys.indexOf(data)
         this.enemys.splice(index,1)
+        gm.ui.enemyBlocks[index].sprite.die()
         gm.ui.leftSide.removeChild(gm.ui.enemyBlocks[index])
         gm.ui.enemyBlocks.splice(index,1)
         gm.ui.updateEnemyblockData()
@@ -2456,6 +2504,7 @@ export class SystemManager {
         this.score = 0
         this.rerollPrice = 5
         gm.ui.rerollBtn.price.text = String(sys.rerollPrice)
+        Am.playSFX("cardGet")
         this.openShop()
         // this.startRound()
     }
@@ -2491,6 +2540,7 @@ export class SystemManager {
             if(this.whenTime(60)){
                 gm.effectBox.stageAlert(sys.stage)
                 sys.setTime(sys.roundTime*60)
+                Am.playSFX("startStage")
             }
             if(this.whileTime(0,sys.timer > 0)){
                 gm.ui.updateEnemyblockSpawnRate(this.repeat)
@@ -2501,6 +2551,7 @@ export class SystemManager {
                 }
             }
             if(this.whenTime(0)){
+                Am.playSFX("endStage")
                 sys.roundEnd()
             }
             if(sys.score > sys.goalScore){
@@ -2512,6 +2563,7 @@ export class SystemManager {
                     gm.effectBox.killPlayer()
                 }
                 if(this.whenTime(30)){
+                    Am.playSFX("penaltyKill")
                     gm.player.damage()
                 }
                 if(this.whenTime(30)){

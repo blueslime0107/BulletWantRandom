@@ -5,6 +5,7 @@ const enemyArcaive = {
         health: 3,
         blue: 10,
         red: 0,
+        upgradeBlueRed: {blue: 5, red: 0},
         spawnRate: 60,
         spell: function (self) {
             let time = [120,80,60,50,40,30,20,15,10][self.level-1]
@@ -15,6 +16,7 @@ const enemyArcaive = {
             if(self.level > 1){
                 if(this.whileFrame(360)){
                     if(this.repeat % time == 0){
+                        Am.playSFX("tan2")
                         gm.spawnBullet(BData.snow,6,self).MoveDirSpdEase(getRandom(0,360),5,1,30,Easing.linear)
                     }
                 }
@@ -26,6 +28,7 @@ const enemyArcaive = {
         health: 5,
         blue: 20,
         red: 0,
+        upgradeBlueRed: {blue: 10, red: 0},
         spawnRate: 120,
         spell: function (self) {
             if(this.whenTime(0)){
@@ -40,9 +43,10 @@ const enemyArcaive = {
     },
     redLazer: {
         enemy: EData.redLazer,
-        health: 2,
-        blue: 10,
+        health: 5,
+        blue: 0,
         red: 1,
+        upgradeBlueRed: {blue: 1, red: 1},
         spawnRate: 40,
         spell: function (self) {
             if(this.whenTime(0)){
@@ -50,6 +54,7 @@ const enemyArcaive = {
             }
             this.whenTime(30)
             if(this.whenTime(60)){
+                Am.playSFX("lazer")
                 for(let i=0;i<self.level;i++){
                 gm.spawnBentLazer(1,self,12).MoveDir(lookPoint(self,gm.player)+getRandom(-10,10),8).startRoutine('',function(self){
                     if(this.whenTime(0)){
@@ -65,16 +70,17 @@ const enemyArcaive = {
     },
     orangeLazer: {
         enemy: EData.orangeLazer,
-        health: 5,
+        health: 20,
         blue: 5,
         red: 1,
+        upgradeBlueRed: {blue: 5, red: 1},
         spawnRate: 120,
         spell: function (self) {
             if(this.whenTime(0)){
                 self.MoveDirSpdEase(90,10,0,30,Easing.linear)
             }
             if(this.whenTime(60)){
-                Am.playSFX("tan2")
+                Am.playSFX("lazer")
                 let list = centerSpread(self.level,[80,80,64,64,48,48,32,32,16,16][self.level-1])
                 for(let i=0;i<list.length;i++){
                     let pos = {x:self.pos.x+list[i],y:self.pos.y}
@@ -96,6 +102,7 @@ const enemyArcaive = {
         health: 20,
         blue: 30,
         red: 0,
+        upgradeBlueRed: {blue: 60, red: 0},
         spawnRate: 80,
         spell: function (self) {
             if(this.whenTime(0)){
@@ -122,6 +129,7 @@ const enemyArcaive = {
         health: 15,
         blue: 15,
         red: 1,
+        upgradeBlueRed: {blue: 5, red: 1},
         spawnRate: 74,
         spell: function (self) {
             if(this.whenTime(0)){
@@ -148,8 +156,9 @@ const enemyArcaive = {
     electricRush: {
         enemy: EData.yellowSpread,
         health: 10,
-        blue: 40,
+        blue: 100,
         red: 0,
+        upgradeBlueRed: {blue: 60, red: 1},
         spawnRate: 88,
         spell: function (self) {
             if(this.whenTime(0)){
@@ -166,9 +175,10 @@ const enemyArcaive = {
     },
     electricRush2: {
         enemy: EData.greenSpread,
-        health: 20,
-        blue: 50,
-        red: 0,
+        health: 50,
+        blue: 20,
+        red: 1,
+        upgradeBlueRed: {blue: 30, red: 2},
         spawnRate: 77,
         spell: function (self) {
             if(this.whenTime(0)){
@@ -178,7 +188,7 @@ const enemyArcaive = {
             if(this.whileTime(5,this.repeat < 4 + 2*self.level)){
                 const rnd = getRandom(0,119)
                 for(let i=0;i<360;i+=120){
-                    Am.playSFX("tan1")
+                    Am.playSFX("tan2")
                     gm.spawnBullet(BData.ring,4,self).MoveDirSpdEase(i+rnd,5,getRandomF(2,3),60,Easing.linear)
                 }
             }
@@ -189,6 +199,7 @@ const enemyArcaive = {
         health: 10,
         blue: 20,
         red: 2,
+        upgradeBlueRed: {blue: 100, red: 0},
         spawnRate: 128,
         spell: function (self) {
             if(this.whenTime(0)){
@@ -199,6 +210,7 @@ const enemyArcaive = {
                 gm.spawnBullet(BData.veryBig,0,self).MoveDirSpdEase(lookPoint(self,gm.player),8,0,60,Easing.linear).startRoutine("",function(self){
                     this.whenTime(60)
                     if(this.whileTime(5,this.repeat<6)){
+                        Am.playSFX("tan3")
                         for(let i=0;i<level;i++){
                             gm.spawnBullet(BData.circle,0,self).MoveDirSpdEase(getRandom(0,360),7,getRandomF(1,4),30,Easing.linear).blendMode = "add"
                         }
@@ -214,6 +226,7 @@ const enemyArcaive = {
         health: 10,
         blue: 20,
         red: 2,
+        upgradeBlueRed: {blue: 0, red: 3},
         spawnRate: 128,
         spell: function (self) {
             if(this.whenTime(0)){
@@ -224,6 +237,7 @@ const enemyArcaive = {
                     if(this.whenTime(0)){
                         this.list = []
                         const rnd = getRandomList([0,45])
+                        Am.playSFX("lazer")
                         for(let i=0;i<360;i+=90){
                             this.list.push(gm.spawnLazer(BData.spear,1,self.pos,goAngle(self.pos,i+rnd,300),60,50+10*self.level))
                         }
@@ -263,8 +277,8 @@ const enemyItem = {
         imageId: 3,
         onEquip: function(){ // onEquip의 this는 EnemyData다
             this.setLevel(this.level+1)
-            this.setBlue(this.blue*2)
-            this.setRed(this.red*2)
+            this.setBlue(this.blue + this.upgradeBlueRed.blue)
+            this.setRed(this.red + this.upgradeBlueRed.red)
         }
     },
     counterBullet: {
@@ -275,6 +289,7 @@ const enemyItem = {
             const dir = lookPoint(enemy,gm.player)
             gm.startRoutine("counterBullet",function(self){
                 if(this.whileTime(Math.max(1,6-stack),this.repeat<6*stack)){
+                    Am.playSFX("tan1")
                     gm.spawnBullet(BData.kunai,1,enemy).MoveDir(dir+getRandom(-3,3),10)
                 }
             })
@@ -286,15 +301,19 @@ const enemyItem = {
         negative: true,
         onEquip: function(){
             this.setHealth(this.health*2)
-            this.setBlue(this.blue*2)
-            this.setRed(this.red*2)
+            this.setBlue(this.blue + this.upgradeBlueRed.blue)
+            this.setRed(this.red + this.upgradeBlueRed.red)
         }
     },
     barrier: {
         imageId: 7,
         negative: true,
         onSpawn: function(stack){
-            this.getGodTime(30*stack)
+            this.getGodTime(40*stack)
+        },
+        onEquip: function(){
+            this.setBlue(this.blue + this.upgradeBlueRed.blue)
+            this.setRed(this.red + this.upgradeBlueRed.red)
         }
     },
     killEnemy: {
@@ -348,7 +367,7 @@ const playerItem = {
                                     }
                                 }
                             }else{
-                                self.dir = getHomingAngle(self.dir,lookPoint(self,this.enemy),5)
+                                self.dir = getHomingAngle(self.dir,lookPoint(self,this.enemy),10)
                                 if(!this.enemy.valiable){
                                     this.enemy = null
                                     this.endWhile()
@@ -402,9 +421,6 @@ const playerItem = {
             gm.pOptionLayer.addChild(option)
         }
     },
-    // optionSquare: {
-    //     imageId: 3
-    // },
     speedUp: {
         imageId: 4,
         price: 50,
@@ -419,11 +435,16 @@ const playerItem = {
             sys.liveMax += 1
             sys.setLive(sys.liveMax)
         }
+    },
+    bombPowerget: {
+        imageId: 6,
+        price: 200,
+        onGraze: function(stack){
+            gm.player.setBombPower(gm.player.bombPower + stack)
+        }
+
     }
     // barrier: { 
     //     imageId: 5
     // },
-    // grazeArea: {
-    //     imageId: 6
-    // }
 }
