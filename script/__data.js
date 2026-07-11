@@ -518,9 +518,9 @@ const EFC = {
             this.addChild(circle)
         },
         update: function (self) {
-            if (this.whileTime(0, this.repeat < 60)) {
-                self.scale.set(frameMove(1, 2, this.repeat, 60, Easing.easeOutSine))
-                self.alpha = (1 - this.repeat / 60)
+            if (this.whileFrame(20)) {
+                self.scale.x = frameMove(1, 4, this.repeat, this.time, Easing.easeOutSine)
+                self.alpha = (1 - this.repeat / this.time)
             }
             this.$die()
         }

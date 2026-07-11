@@ -156,10 +156,10 @@ const enemyArcaive = {
     electricRush: {
         enemy: EData.yellowSpread,
         health: 10,
-        blue: 100,
+        blue: 50,
         red: 0,
-        upgradeBlueRed: {blue: 60, red: 1},
-        spawnRate: 88,
+        upgradeBlueRed: {blue: 50, red: 1},
+        spawnRate: 120,
         spell: function (self) {
             if(this.whenTime(0)){
                 self.MoveDir(getRandom(-4,4)+90,4)
@@ -179,7 +179,7 @@ const enemyArcaive = {
         blue: 20,
         red: 1,
         upgradeBlueRed: {blue: 30, red: 2},
-        spawnRate: 77,
+        spawnRate: 120,
         spell: function (self) {
             if(this.whenTime(0)){
                 self.MoveDir(getRandom(-4,4)+90,4)
@@ -255,6 +255,41 @@ const enemyArcaive = {
         }
     }
 }
+
+const bossArcaive = [
+    {
+        enemy: EData.normal,
+        spell: function (self) {
+            if(this.whileTime(40)){
+                Am.playSFX("tan1")
+                for(let i=0;i<360;i+=10){
+                    gm.spawnBullet(BData.gun,6,self).MoveDirSpdEase(i,8,getRandomF(3,5),60,Easing.linear)
+                }
+                if(this.repeat % 3 == 0){
+                    self.MoveTime(pos(GS*0.5+getRandom(-100,100),GS*0.25+getRandom(-20,40)),30,Easing.easeInOutCubic)
+                }
+            }
+        }
+    },
+    {
+        enemy: EData.redLazer,
+        spell: function (self) {
+            if(this.whenTime(0)){this.frame = 110}
+            if(this.whileTime(120)){
+                Am.playSFX("lazer")
+                const neg = this.repeat % 2 == 0 ? 1 : -1
+                for(let i=0;i<360;i+=30){
+                    gm.spawnBentLazer(1,self,40).MoveDir(i,6).startRoutine('',function(self){
+                        if(this.whileTime(0)){
+                            self.dir += neg
+                        }
+                    })
+                }
+            }
+        }
+    }
+]
+
 
 const enemyItem = {
     coin: {

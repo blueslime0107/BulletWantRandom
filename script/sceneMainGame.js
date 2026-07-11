@@ -158,7 +158,7 @@ class Enemy extends ShotObject {
         this.spell = spell
         this.red = spell.red
         this.blue = spell.blue
-        this.items = spell.items
+        this.items = spell.items || []
 
         this.triggerItem('onSpawn')
         this.startRoutine("spell",spell.spell)
@@ -315,14 +315,20 @@ class Boss extends Enemy {
 
     constructor(){
         super()
-        this.finalMode = 0
+        this.finalMode = 0 // 0: 일반, 1: 최종보스, 2: 최종보스(2페이즈)
         this.healthMax = 0
         this._sin = 0
         this._specialMoving = false
+        this.baseSprite.scale.set(2)
+    }
+
+    applyEnemyData(enemy){
+        super.applyEnemyData(enemy)
+        this.radius *= 1.5
+        this.baseSprite.scale.set(3)
     }
 
     kill(){
-        console.log("kill")
         this.setHealth(0)
         this.endAllRoutine()
         if(this.finalMode == 0){
@@ -362,12 +368,13 @@ class Boss extends Enemy {
         gm.ui.bossName.text = ""
         Am.playSFX("eDead")
         this.die()
+        gm.boss = null
     }
 
     activeSpell(spell){
         super.activeSpell(spell)
         this.setHealth(spell.health)
-        gm.startTimer(spell.timer)
+        if(spell.timer) gm.startTimer(spell.timer)
         gm.ui.updateBossHealth()
     }
 
@@ -1092,7 +1099,7 @@ class Player extends GameObject {
 
     damage(){
         if(this.godMode){return}
-        gm.killAll()
+        gm.killAll(['bullet','enemy'])
         this.hitSprite.visible = false
         this.godMode = true
         this.shotAble = false
@@ -1651,7 +1658,6 @@ class EffectPlayBox {
                 gm.effectBox._playerKillCircle.alpha = frameMove(0,1,this.repeat,this.time,Easing.easeOutCubic)
                 gm.effectBox._playerKillCircle.scale.x = frameMove(15,0,this.repeat,this.time,Easing.linear)
                 gm.effectBox._playerKillCircle.scale.y = frameMove(15,0,this.repeat,this.time,Easing.linear)
-                console.log('Player kill circle scale:', gm.effectBox._playerKillCircle.scale.x, gm.effectBox._playerKillCircle.scale.y)
             }
         })
     }
@@ -2114,7 +2120,7 @@ class GameUI extends GameObject{
         this.timer = new Text({
             text: "00",
             style: this.textStyle,
-            position:{x:GCX,y:GY-10},
+            position:{x:950,y:GY-10},
             tint:'rgb(255, 255, 255)',
             anchor: {x:0.5, y:0},
             visible: false
@@ -2150,7 +2156,7 @@ class GameUI extends GameObject{
             const life = new Sprite({
                 texture: Img.texture.ui_heartEmpty,
                 scale: 0.75,
-                position: {x: this.lives.length*70*0.75, y:0}
+                position: {x: GS - 48, y:GS - 48 - this.lives.length*48}
             })
             this.liveGague.addChild(life)
             this.lives.push(life)
@@ -2267,9 +2273,11 @@ class GameUI extends GameObject{
     }
     updateShopButtons(){
         const newEnemyAble = sys.maxEnemyLength > sys.enemys.length
-        this.enemyLeft.toggleValiable(newEnemyAble && !this.enemyLeft.purchased)
-        this.enemyRight.toggleValiable(newEnemyAble && !this.enemyRight.purchased) 
-        console.log(this.enemyLeft.valiable)
+
+        const hasLeftEnemy = sys.enemys.find(enemy => enemy.enemy === this.enemyLeft.data.enemy);
+        this.enemyLeft.toggleValiable((newEnemyAble || hasLeftEnemy) && !this.enemyLeft.purchased)
+        const hasRightEnemy = sys.enemys.find(enemy => enemy.enemy === this.enemyRight.data.enemy);
+        this.enemyRight.toggleValiable((newEnemyAble || hasRightEnemy) && !this.enemyRight.purchased)
     }
     hideShop(){
         this.endAllRoutine()
@@ -2371,7 +2379,7 @@ export class SystemManager {
         this.totalScore = 0
 
         this.roundTime = 30
-        this.liveMax = 4
+        this.liveMax = 2
         this.live = 0
 
         this.shopData = {
@@ -2384,6 +2392,7 @@ export class SystemManager {
         this.timer = 0
         
         this.enemys = [ ]
+        this.bossHealth = 200
 
         this.rerollPrice = 5
     }
@@ -2468,7 +2477,7 @@ export class SystemManager {
         // 같은 데이터가 있음
         const existingEnemy = this.enemys.find(enemy => enemy.enemy === data.enemy);
         if(existingEnemy){
-            existingEnemy.spawnRate = Math.ceil(existingEnemy.spawnRate * 0.5)
+            existingEnemy.spawnRate = Math.ceil(Math.max(existingEnemy.spawnRate * 0.5,10))
         }else{
             const enemy = new EnemyData(data)
             this.enemys.push(enemy)
@@ -2541,6 +2550,10 @@ export class SystemManager {
                 gm.effectBox.stageAlert(sys.stage)
                 sys.setTime(sys.roundTime*60)
                 Am.playSFX("startStage")
+                sys.spawnBoss(bossArcaive[1])
+                // if(sys.stage % 2 == 0){
+                //     sys.spawnBoss(bossArcaive[sys.stage /2-1])
+                // }
             }
             if(this.whileTime(0,sys.timer > 0)){
                 gm.ui.updateEnemyblockSpawnRate(this.repeat)
@@ -2577,6 +2590,7 @@ export class SystemManager {
     }
 
     roundEnd(){
+        if(gm.boss) gm.boss.finalMode = 0
         gm.killAll()
         gm.player.getGodTime(0)
         gm.effectBox.scoreAlert()
@@ -2588,6 +2602,7 @@ export class SystemManager {
 
     stageEnd(){
         gm.killAll()
+        if(gm.boss) {gm.boss.finalMode = 1; gm.boss.kill()}
         this.blueScore = 0
         this.redScore = 1
         this.stage++
@@ -2601,6 +2616,23 @@ export class SystemManager {
 
     terminatePlayer(){
         gm.effectBox.killPlayer()
+    }
+
+    spawnBoss(data){
+        gm.startRoutine('spawnBoss',function(self){
+            
+            if(this.whenTime(0)){
+                if(!gm.boss || gm.boss._killed){
+                gm.spawnBoss(pos(0,0),data.enemy)
+                gm.boss.MoveTime(pos(GS*0.5,GS*0.25),60,Easing.easeOutCubic)
+                }
+            }
+            if(this.whenTime(60)){
+                gm.boss.finalMode = 2
+                data.health = sys.bossHealth * Math.pow(2, sys.stage - 1)
+                gm.activeBoss(data)
+            }
+        })
     }
 }
 
@@ -2796,13 +2828,20 @@ export class GameManager extends SceneObject {
         return this.boss && this.boss.health <= 0
     }
 
-    killAll(){
-        for(let bullet of this.bullets){
-            bullet.kill()
+    killAll(killList=['bullet','enemy','boss'],bonus = false){
+        if(killList.includes('bullet')){
+            for(let bullet of this.bullets){
+                bullet.kill()
+                if(bonus) sys.blueScore++
+                    
+            }
         }
-        for(let enemy of this.enemys){
-            if(enemy.health <= 0){continue}
-            enemy.kill('system')
+        if(killList.includes('enemy')){
+            for(let enemy of this.enemys){
+                if(enemy.health <= 0){continue}
+                if(enemy == gm.boss && !killList.includes('boss')){continue}
+                enemy.kill(bonus ? 'player': 'system')
+            }
         }
     }
 
