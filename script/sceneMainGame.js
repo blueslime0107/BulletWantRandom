@@ -942,15 +942,16 @@ class Item extends GameObject {
 class KillCircle extends GameObject {
     constructor(pos,radius=50){
         super()
+        console.log(radius)
         this.endRadius = radius
         this.set(pos)
-        this.baseSprite = Img.sprite('circle', 100, 'rgba(255, 255, 255, 0.56)')
+        this.baseSprite = Img.sprite('reverseGradiusCircle', 100, 'rgba(255, 255, 255, 0.56)')
         this.addChild(this.baseSprite)
         gm.efcBulletAbove.addChild(this)
         gm.addUpdate(this)
         this.startRoutine("test",function(self){
-            if(this.whileFrame(20)){
-                self.scale.x = frameMove(1,this.endRadius/25,this.repeat,this.time,Easing.linear)
+            if(this.whileFrame(30)){
+                self.scale.x = frameMove(1,self.endRadius/25,this.repeat,this.time,Easing.linear)
                 self.radius = self.scale.x * 50
                 self.alpha = frameMove(1,0,this.repeat,this.time,Easing.linear)
                 self.scale.y = self.scale.x
@@ -2513,7 +2514,7 @@ export class SystemManager {
         this.score = 0
         this.rerollPrice = 5
         gm.ui.rerollBtn.price.text = String(sys.rerollPrice)
-        Am.playSFX("cardGet")
+        Am.playSFX("powerGraze")
         this.openShop()
         // this.startRound()
     }

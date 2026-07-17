@@ -146,6 +146,14 @@ const Textures = {
         }
         return app.generateTexture({ target: g });
     },
+    reverseGradiusCircle: function () {
+        let g = new Graphics();
+        // 반지름 64 크기로 가장자리에서 중앙으로 갈 수록 투명해지는 원을 그립니다.
+        for (let r = 64; r > 0; r -= 2) {
+            g.circle(0, 0, r).stroke({ color: 0xffffff, alpha: r / 64, width: 2 });
+        }
+        return app.generateTexture({ target: g });
+    },
     plus: function () {
         const SIZE = 96;
         const THICK = 24;

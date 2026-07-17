@@ -75,6 +75,7 @@ const SFX = {
     startStage: 'se/se_don00.wav',
     endStage: 'se/se_boon00.wav',
     penaltyKill: 'se/se_focus.wav',
+    oneLifeLeft: 'se/se_life1.wav'
 }
 
 
