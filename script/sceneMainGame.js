@@ -2447,7 +2447,7 @@ export class SystemManager {
         this._growthScore = 1.5
         this.reset()
 
-        this.bossTest = true
+        this.bossTest = false
     }
 
     reset(){
