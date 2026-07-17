@@ -96,6 +96,10 @@ export class Button extends UIObject {
         this.hitAreaRect = Img.sprite("rect", 1, "rgba(255,255,255,1)", { anchor: { x: 0.5, y: 0.5 }, alpha:0 });
         this.hitAreaRect.cursor = 'pointer';
         this.hitAreaRect.eventMode = 'static';
+        this.hitAreaRect.hover = false;
+        this.hitAreaRect.pressed = false;
+        this.hitAreaRect.released = false;
+        this.hitAreaRect.down = false;
         this.addChild(this.hitAreaRect)
 
         if (this.baseSprite) {
@@ -118,15 +122,6 @@ export class Button extends UIObject {
         else {
             this.updateTouchArea();
         }
-
-        this.hitAreaRect.on('pointerover', () => this.toggleHighlight(true));
-        this.hitAreaRect.on('pointerout', () => this.toggleHighlight(false));
-        this.hitAreaRect.on('pointerdown', () => this.toggleHighlight(true));
-        this.hitAreaRect.on('pointerup', () => {
-            this.toggleHighlight(false);
-            this.press();
-        });
-        this.hitAreaRect.on('pointerupoutside', () => this.toggleHighlight(false));
     }
 
     refreshText() {
@@ -167,6 +162,26 @@ export class Button extends UIObject {
         this.valiable = boolean
         this.hitAreaRect.interactive = boolean
         this.onToggle?.(boolean)
+    }
+
+    update() {
+        super.update();
+
+        const isAvailable = this.valiable && this.inputGroup?.valiable !== false;
+        const wasHover = this.hitAreaRect.hover;
+        const hover = isAvailable && this.hitAreaRect.getBounds().containsPoint(Input.currentPos.x, Input.currentPos.y);
+
+        this.hitAreaRect.hover = hover;
+        this.hitAreaRect.pressed = hover && Input.pointerPressed;
+        this.hitAreaRect.released = hover && Input.pointerReleased;
+        this.hitAreaRect.down = hover && Input.pointerDown;
+
+        if (wasHover !== hover) {
+            this.toggleHighlight(hover);
+        }
+        if (this.hitAreaRect.released) {
+            this.press();
+        }
     }
 
     press() {

@@ -7,6 +7,10 @@ export class InputManager {
     this.pressed = new Set(); // 이번 프레임에서 새로 눌린 키
     this.released = new Set(); // 이번 프레임에서 뗀 키
 
+    this.pointerDown = false;
+    this.pointerPressed = false;
+    this.pointerReleased = false;
+
     // 🎯 드래그 입력
     this.currentPos = { x: 0, y: 0 };
     this.dragging = false; // 현재 드래그 중인지 여부
@@ -72,7 +76,7 @@ export class InputManager {
       const touch = e.changedTouches ? e.changedTouches[0] : e;
       this.activeTouchId = touch.identifier ?? 0;
 
-      const pos = this.mousePos(e);
+      const pos = this.mousePos(touch);
       this.dragging = true;
       this.dragStart.x = pos.x;
       this.dragStart.y = pos.y;
@@ -98,7 +102,7 @@ export class InputManager {
       }
       if (!touch) return;
 
-      const pos = this.mousePos(e);
+      const pos = this.mousePos(touch);
       this.dragDelta.x = pos.x - this.dragStart.x;
       this.dragDelta.y = pos.y - this.dragStart.y;
       this.multiTouch = e.touches && e.touches.length > 1;
@@ -120,23 +124,75 @@ export class InputManager {
       this.multiTouch = e.touches && e.touches.length > 1;
     };
 
+    this._updatePointerPos = (e) => {
+      const pos = this.mousePos(e);
+      this.currentPos.x = pos.x;
+      this.currentPos.y = pos.y;
+    };
+
+    this._startPointer = (e) => {
+      if (this.dragging) return;
+      const touch = e.changedTouches ? e.changedTouches[0] : e;
+      this._updatePointerPos(touch);
+      this.pointerDown = true;
+      this.pointerPressed = true;
+    };
+
+    this._movePointer = (e) => {
+      if (!e.touches) {
+        this._updatePointerPos(e);
+        return;
+      }
+      for (const touch of e.touches) {
+        if ((touch.identifier ?? 0) === this.activeTouchId) {
+          this._updatePointerPos(touch);
+          break;
+        }
+      }
+    };
+
+    this._endPointer = (e) => {
+      const endedTouches = e.changedTouches ?? [e];
+      for (const touch of endedTouches) {
+        if ((touch.identifier ?? 0) === this.activeTouchId) {
+          this._updatePointerPos(touch);
+          this.pointerDown = false;
+          this.pointerReleased = true;
+          break;
+        }
+      }
+    };
+
     // ─────────────────────────────────────────
     // 이벤트 등록
     window.addEventListener("keydown", this._downHandler);
     window.addEventListener("keyup", this._upHandler);
 
-    window.addEventListener("mousedown", this._startDrag);
-    window.addEventListener("mousemove", this._moveDrag);
-    window.addEventListener("mouseup", this._endDrag);
+    window.addEventListener("mousedown", (e) => {
+      this._startPointer(e);
+      this._startDrag(e);
+    });
     window.addEventListener("mousemove", (e) => {
-      const pos = this.mousePos(e);
-      this.currentPos.x = pos.x;
-      this.currentPos.y = pos.y;
+      this._movePointer(e);
+      this._moveDrag(e);
+    });
+    window.addEventListener("mouseup", (e) => {
+      this._endPointer(e);
+      this._endDrag(e);
     });
 
-    window.addEventListener("touchstart", this._startDrag);
-    window.addEventListener("touchmove", this._moveDrag);
-    window.addEventListener("touchend", this._endDrag);
+    window.addEventListener("touchstart", (e) => {
+      this._startPointer(e);
+      this._startDrag(e);
+    });
+    window.addEventListener("touchmove", (e) => {
+      this._movePointer(e);
+      this._moveDrag(e);
+    });
+    window.addEventListener("touchend", (e) => {
+      this._endPointer(e);
+      this._endDrag(e);
+    });
   }
 
   // 키 상태
@@ -193,6 +249,8 @@ export class InputManager {
   endFrame() {
     this.pressed.clear();
     this.released.clear();
+    this.pointerPressed = false;
+    this.pointerReleased = false;
     // 드래그 값은 endFrame에서 초기화하지 않음
   }
 

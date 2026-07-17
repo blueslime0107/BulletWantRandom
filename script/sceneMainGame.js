@@ -1118,7 +1118,11 @@ class Player extends GameObject {
                 self.SetValue('alpha',0,60,Easing.linear)
             }
             if(this.whenTime(60)){
-                self.appear()
+                if(sys.live < 0){
+                    sys.gameOver()
+                }else{
+                    self.appear()
+                }
             }
         })
     }
@@ -1819,7 +1823,7 @@ class ShopButton extends Button {
     updateData(data,enemy = true){
         this.data = data
         this.image.texture = (enemy) ? Textures.itemEnemy[data.imageId] : Textures.itemPlayer[data.imageId]
-        this.price.text = String(data.price || 0)
+        this.price.text = String(data.price || '')
         this.baseSprite.tint = data.negative ? 'rgb(255, 119, 119)' : 'rgb(56, 56, 56)'
         this.toggleValiable(true)
     }
@@ -1975,6 +1979,14 @@ class GameUI extends GameObject{
             this.enemyItemBtns[i].id = i+2
             this.enemyItemBtns[i].set(170 * i + 85, 220)   
             this.enemyItemBtns[i].onPress = function(){
+                if(gm.selectedEnemyItem == this){
+                    this.endRoutine("select")
+                    this.SetValueObj(this.scale,'x',1,10,Easing.easeOutCubic)
+                    this.SetValueObj(this.scale,'y',1,10,Easing.easeOutCubic)
+                    this.SetValue('angle',0,10,Easing.easeOutCubic)
+                    gm.selectedEnemyItem = null
+                    return
+                }
                 if(this.data.price > sys.coin){return}
                 const d = gm.selectedEnemyItem
                 gm.selectedEnemyItem = this
@@ -2281,8 +2293,8 @@ class GameUI extends GameObject{
                 )
                 b.sprite = new GameUIEnemyBlock()
                 b.sprite.startRoutine('update', function(self){if(this.whileTime(0)){self.angle = Graph.sin(this.repeat, -5,5,20)}})
-                this.addUpdate(b.sprite)
                 b.addChild(b.sprite)
+                b.addUpdate(b.sprite)
                 this.enemyBlocks.push(b)
                 enemy.blockUI = b.sprite
                 this.leftSide.addChild(b)
@@ -2309,6 +2321,7 @@ class GameUI extends GameObject{
             for(let i=0;i<self.shopButtons.length;i++){
                 if(this.whenTime(5)){
                     self.SetValueObj(self.shopButtons[i].scale,'x',1,60,Easing.easeOutBack)
+                    self.SetValueObj(self.shopButtons[i],'angle',0,10,Easing.easeOutBack)
                 }
             }
             if(gm.inputGroup != self.shopGroup){
@@ -2465,6 +2478,8 @@ export class SystemManager {
         this.bossSpawned = false
 
         this.rerollPrice = 5
+
+        this.gameover = false
     }
 
     set coin(value){
@@ -2725,6 +2740,11 @@ export class SystemManager {
                 gm.activeBoss(data)
             }
         })
+    }
+
+    gameOver(){
+        this.gameover = true
+        Scene.enter(Scene.sceneList.Pause,{mode:'gameover'})
     }
 }
 

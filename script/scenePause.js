@@ -66,7 +66,10 @@ class ScenePause extends SceneObject {
                     this.scale.set(isActive ? 1.08 : 1)
                     this.tint = isActive ? 0xfff26b : 0xffffff
                 },
-                onPress: () => entry.onPress()
+                onPress: () => entry.onPress(),
+                onToggle: function(toggle){
+                    this.alpha = toggle ? 1 : 0.5
+                }
             })
 
             ui.y = i * 58
@@ -215,9 +218,9 @@ class ScenePause extends SceneObject {
         Scene.enter(Scene.sceneList.MainGame)
     }
 
-    enter() {
+    enter(option) {
         Am.pauseBGM()
-        this.pauseTitle.text = Data.text('pause_title', 'PAUSED')
+        this.pauseTitle.text = Data.text('pause_title')
         for (let obj of this.menuGroup.items) {
             obj.alpha = 1
             obj.x = 0
@@ -227,6 +230,11 @@ class ScenePause extends SceneObject {
             obj.toggleValiable(false)
         }
         this.setInputGroup(this.menuGroup)
+        if(sys.gameover) {
+            this.pauseTitle.text = Data.text('gameover')
+            this.menuGroup.items[0].toggleValiable(false) // Disable Resume button
+            this.menuGroup.setItem(1)
+        }
     }
 
     setInputGroup(group) {
