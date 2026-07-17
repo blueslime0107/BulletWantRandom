@@ -1033,6 +1033,9 @@ class Player extends GameObject {
         this.shotAble = true
         this.blockMove = false
         this.bombPower = 0
+
+        this.alpha = 1
+        this.scale.set(1)
     }
 
 
@@ -2443,6 +2446,8 @@ export class SystemManager {
         this._baseScore = 5000
         this._growthScore = 1.5
         this.reset()
+
+        this.bossTest = true
     }
 
     reset(){
@@ -2618,6 +2623,11 @@ export class SystemManager {
         this.bossSpawned = false
         gm.ui.rerollBtn.price.text = String(sys.rerollPrice)
         Am.playSFX("powerGraze")
+        if(this.bossTest){
+            this.startRound()
+            sys.spawnBoss(bossArcaive[6])
+            return
+        }
         this.openShop()
         // this.startRound()
     }

@@ -284,11 +284,11 @@ const BData = {
     rice: { name: 'rice', texture:"bulletRice",radius: 2, spinMode:1,z:0},
     paper: { name: 'paper', texture:"bulletPaper",radius: 2, spinMode:1,z:0},
     gun: { name: 'gun', texture:"bulletGun",radius: 2, spinMode:1,z:0},
-    darkrice: { name: 'darkrice', texture:"bulletDarkRice",radius: 2, spinMode:1,z:0},
+    darkrice: { name: 'darkrice', texture:"bulletDarkrice",radius: 2, spinMode:1,z:0},
     star: { name: 'star', texture:"bulletStar",radius: 2, spinMode:2,z:0},
     tear: { name: 'tear', texture:"bulletTear",radius: 2, spinMode:1,z:0},
 
-    darksnow: { name: 'darksnow', texture:"bulletDarkSnow",radius: 4, spinMode:2,z:1},
+    darksnow: { name: 'darksnow', texture:"bulletDarksnow",radius: 4, spinMode:2,z:1},
     smallrice: { name: 'smallrice', texture:"bulletSmallRice",radius: 4, spinMode:1,z:1},
     snow: { name: 'snow', texture:"bulletSnow",radius: 4, spinMode:0,z:1},
 

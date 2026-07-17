@@ -312,7 +312,105 @@ const bossArcaive = [
                 }
             }
         }
-    }
+    },
+    {
+        enemy: EData.pinkHoming,
+        spell: function (self) {
+            if(this.whenTime(10)){
+                Am.playSFX("tan2")
+                for(let i=0;i<360;i+=30){
+                    for(let j=0;j<2;j++){
+                        gm.spawnBullet(BData.paper,7,self).MoveDirSpdEase(i+this.repeat*4.7,[4,8][j],0,60,Easing.linear).startRoutine("",function(self){
+                            if(this.whenTime(90)){
+                                Am.playSFX("kira2")
+                                self.MoveDirSpdEase(lookPoint(self,gm.player),4,0,60,Easing.linear)
+                            }
+                            if(this.whenTime(60)){
+                                Am.playSFX("kira2")
+                                self.MoveDir(lookPoint(self,gm.player),4)
+                            }
+                        })
+                    }
+                }
+            }
+            if(this.whenTime(90)){
+                self.MoveTime(pos([getRandom(100,200),getRandom(200,480),getRandom(480,580)][this.count % 3],getRandom(100,280)),60,Easing.easeInOutCubic)
+                this.count++
+            }
+            if(this.whileTime(10,this.repeat < 3)){
+                for(let i=0;i<360;i+=20){
+                    for(let j=0;j<2;j++){
+                        gm.spawnBullet(BData.paper,8,self).MoveDirSpdEase(i+this.repeat*4.7,0,[4,6][j],60,Easing.linear)
+                    }
+                }
+            }
+            if(this.whenTime(60)){
+                this.currentLine = 0
+            }
+        }
+    },
+    {
+        enemy: EData.yellowSpread,
+        spell: function (self) {
+            if(this.whenTime(10)){
+                Am.playSFX("kira1")
+                self.startRoutine('',function(self){
+                    if(this.whenTime(0)){this._pos = self.pos}
+                    if(this.whileTime(2,this.repeat < 20)){
+                        for(let i=0;i<360;i+=90){
+                            let bullet = gm.spawnBullet(BData.ring,3,pos(this._pos.x,this._pos.y+this.repeat*20))
+                            .MoveDirSpdEase(i+this.repeat*8.2,5,0,20,Easing.linear)
+                            .startRoutine('',function(self){if(this.whenTime(20)){self.MoveDirSpdEase(self.dir,0,6,120,Easing.linear)}})
+                            bullet.blendMode = "add"
+                        }
+                    }
+                })
+            }
+            if(this.whenTime(90)){
+                self.MoveTime(pos(gm.player.x+getRandom(-20,20), getRandom(150,250)),60,Easing.easeInOutCubic)
+            }
+            if(this.whenTime(10)){
+                this.currentLine = 0
+            }
+        }
+    },
+    {
+        enemy: EData.greenSpread,
+        spell: function (self) {
+            if(this.whileTime(4)){
+                Am.playSFX("tan1")
+                self.startRoutine('',function(self){
+                    for(let i=0;i<5;i++){
+                        gm.spawnBullet([BData.circle,BData.darksnow,BData.big,BData.oval,BData.veryBig][i],4,self).MoveDir(getRandom(0,360),getRandomF(4,8)).blendMode = "add"
+                    }
+                })
+            }
+        }
+    },
+    {
+        enemy: EData.orangeLazer,
+        spell: function (self) {
+            if(this.whenTime(0)){
+                this.count =  lookPoint(self,gm.player)
+            }
+            if(this.whileTime(2,this.repeat<12)){
+                Am.playSFX("lazer1")
+                for(let i=0;i<2;i++){
+                    const startPos = goAngle(self.pos,this.count-90+180*i,(this.repeat-1)*15)
+                    gm.spawnLazer(BData.lazer,2,startPos,goAngle(startPos,this.count,900),60,30)
+                }
+            }
+            if(this.whenTime(60)){
+                self.MoveDirSpdEase([0,180][getRandom(0,2)],3,0,60,Easing.linear)
+            }
+            if(this.whenTime(60)){
+                this.currentLine = 0
+            }
+            self.x = Math.max(100,Math.min(GS-100,self.x))
+        }
+    },
+
+
 ]
 
 
