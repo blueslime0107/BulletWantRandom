@@ -571,7 +571,7 @@ class Lazer extends GameObject {
         this.setLazer(data.shape,data.color)
         // _render가 매 프레임 _width를 texture.height로 덮어쓰므로 onRender 교체
         this.lazerMesh.onRender = () => {
-            if(!this.lazerMesh){return}
+            if(!this.lazerMesh || !this.lazerMesh.geometry){return}
             this.lazerMesh.geometry._width = this.lazerWidth
             this.lazerMesh.geometry.update()
         }
