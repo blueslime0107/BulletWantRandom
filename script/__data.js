@@ -515,12 +515,12 @@ const EFC = {
     },
     enemyBlast: {
         init: function () {
-            let circle = Img.sprite('circle', 32)
+            let circle = Img.sprite('triangle', 64)
             this.addChild(circle)
         },
         update: function (self) {
             if (this.whileFrame(20)) {
-                self.scale.x = frameMove(1, 4, this.repeat, this.time, Easing.easeOutSine)
+                self.angle += 10
                 self.alpha = (1 - this.repeat / this.time)
             }
             this.$die()

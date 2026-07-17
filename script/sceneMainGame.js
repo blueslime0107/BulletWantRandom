@@ -258,6 +258,7 @@ class Enemy extends ShotObject {
         gm.spawnEffect(EFC.enemyBlast,gm.gameLayer,this)
         if(caller == 'player'){
             this.whenDeadScore()
+            sys.addCombo()
             this.triggerItem('onDeath')
         }
         Am.playSFX("eDead")
@@ -363,7 +364,9 @@ class Boss extends Enemy {
 
     final(){
         gm.spawnEffect(EFC.enemyBlast,gm.gameLayer,this)
-        gm.spawnItem(this,"point")
+        // gm.spawnItem(this,"point")
+        sys.setTime(Math.min(sys.timer + (sys.roundTime-10)*60,sys.roundTime*60)) // 최대 30초까지만 시간 회복시켜줌
+        gm.ui.toggleKillBoss(false)
         gm.ui.bossBottomAlert.visible = false
         gm.ui.bossName.text = ""
         Am.playSFX("eDead")
@@ -1882,6 +1885,18 @@ class GameUI extends GameObject{
             child.y = GY + 20 + stack
             stack += [40,60,40,60,40,40,60,40][i]
         }
+
+        this.killBoss = new Container({
+            position: {x: GR + 150, y: GY + 300},
+            visible: false
+        })
+        this.killBossBox = Img.sprite('rect', [150, 64], 'rgb(61, 0, 0)', {anchor: 0.5})
+        this.killBossMask = Img.sprite('rect', [150, 64], 'rgb(255, 255, 255)', {anchor: 0.5})
+        this.killBossText = new Text({ text: "NULLITY", style: this.textStyle, tint: 'rgb(255, 255, 255)', anchor: 0.5 })
+        this.killBossMask.visible = false
+        this.killBossText.setMask({ mask: this.killBossMask})
+        this.killBoss.addChild(this.killBossBox, this.killBossMask, this.killBossText)
+        this.addChild(this.killBoss)
     }
 
     _initLeftSide(){
@@ -2124,10 +2139,26 @@ class GameUI extends GameObject{
             position:{x:950,y:GY-10},
             tint:'rgb(255, 255, 255)',
             anchor: {x:0.5, y:0},
-            visible: false
+            visible: true
         })
         this.addChild(this.timer)
 
+        this.comboText = new Text({
+            text: "x1",
+            style: this.textStyle,
+            position:{x:GX,y:GY+40},
+            tint:'rgb(255, 255, 255)',
+            anchor: 0,
+            visible: false
+        })
+
+        this.comboGague = Img.sprite('rect',[100,36],'rgb(255, 255, 255)',{
+            position:{x:GX,y:GY+50},
+            anchor: 0,
+            visible: false
+        })
+        this.addChild(this.comboGague)
+        this.addChild(this.comboText)
         // this.round = new Text({
         //     text: "ROUND 01",
         //     style:this.textStyle,
@@ -2150,6 +2181,7 @@ class GameUI extends GameObject{
         }else{
             this.bossBottomAlert.visible = false
         }
+        this.updateComboGagueBar()
     }
 
     updateLive(){
@@ -2180,9 +2212,40 @@ class GameUI extends GameObject{
         }
     }
 
+    toggleKillBoss(value){
+        this.killBoss.visible = value
+        if(this.killBoss.visible){
+            this.startRoutine('killBoss', function(self){
+                if(this.whileTime(0)){
+                    self.killBoss.angle = Graph.sin(this.repeat, -5,5,60)
+                }
+            })
+        }else{
+            this.endRoutine('killBoss')
+        }
+    }
+
     updateTimer(){
         this.timer.visible = sys.timer > 0
         this.timer.text = String(Math.ceil(sys.timer / 60)).padStart(2,'0')
+    }
+
+    updateCombo(){
+        this.comboGague.visible = true
+        this.comboText.visible = true
+        this.comboText.text = "x" + String(sys.combo)
+    }
+
+    updateComboGagueBar(){
+        if(sys.comboTime > 0){
+            this.comboGague.width = 100 * (sys.comboTime / sys.comboTimeMax)
+            if(sys.comboTime < sys.comboTimeMax * 0.25 && sys.comboTime % 2 == 0){
+                this.comboText.visible = !this.comboText.visible
+            }
+        }else{
+            this.comboGague.visible = false
+            this.comboText.visible = false
+        }
     }
 
     updateEnemyblockData(){
@@ -2391,9 +2454,15 @@ export class SystemManager {
         }
 
         this.timer = 0
+
+        this.combo = 0
+        this.comboTime = 0
+        this.comboTimeMax = 0
+        this.comboTimeDefaultMax = 60
         
         this.enemys = [ ]
-        this.bossHealth = 200
+        this.bossHealth = 100
+        this.bossSpawned = false
 
         this.rerollPrice = 5
     }
@@ -2432,6 +2501,10 @@ export class SystemManager {
     set redScore(value){
         this._redScore = Math.floor(value)
         if(!gm){return}
+        if(gm.boss){
+            this._redScore = 1
+            return
+        }
         gm.ui.redScore.text = String(this._redScore)
         this.updateTotalScore()
     }
@@ -2451,6 +2524,12 @@ export class SystemManager {
                 Am.playSFX("timer")
             }
         }
+        if(this.comboTime > 0){
+            this.comboTime--
+            if(this.comboTime <= 0){
+                this.combo = 0
+            }
+        }
     }
 
     updateTotalScore(){
@@ -2460,6 +2539,13 @@ export class SystemManager {
     setTime(value){
         this.timer = value
         gm.ui.updateTimer()
+    }
+
+    addCombo(){
+        this.combo++
+        this.comboTime = Math.max(10,this.comboTimeDefaultMax - this.combo + 1)
+        this.comboTimeMax = this.comboTime
+        gm.ui.updateCombo()
     }
 
     setLive(value){
@@ -2499,7 +2585,8 @@ export class SystemManager {
         this.addEnemy(enemyArcaive.smallBullet)
         this.enemys[0].getItem(enemyItem.coin)
         this.stage = 1
-        this.setGoalScore(this._baseScore * Math.pow(this._growthScore, this.stage-1))
+        const constScore = [1000, this._baseScore]
+        this.setGoalScore((constScore.length >= this.stage) ? constScore[this.stage-1] : this._baseScore * Math.pow(this._growthScore, this.stage-1))
     }
 
     startStage(){
@@ -2513,6 +2600,7 @@ export class SystemManager {
         this.setLive(this.liveMax)
         this.score = 0
         this.rerollPrice = 5
+        this.bossSpawned = false
         gm.ui.rerollBtn.price.text = String(sys.rerollPrice)
         Am.playSFX("powerGraze")
         this.openShop()
@@ -2621,11 +2709,14 @@ export class SystemManager {
 
     spawnBoss(data){
         gm.startRoutine('spawnBoss',function(self){
-            
             if(this.whenTime(0)){
-                if(!gm.boss || gm.boss._killed){
-                gm.spawnBoss(pos(0,0),data.enemy)
-                gm.boss.MoveTime(pos(GS*0.5,GS*0.25),60,Easing.easeOutCubic)
+                if(!sys.bossSpawned){
+                    if(!gm.boss || gm.boss._killed){
+                        gm.spawnBoss(pos(0,0),data.enemy)
+                        gm.boss.MoveTime(pos(GS*0.5,GS*0.25),60,Easing.easeOutCubic)
+                        gm.ui.toggleKillBoss(true)
+                        sys.bossSpawned = true
+                    }
                 }
             }
             if(this.whenTime(60)){
