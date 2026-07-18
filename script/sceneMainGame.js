@@ -64,6 +64,7 @@ export class ShotObject extends GameObject {
         this.showed = false
         this.valiable = true
         this.vars = [0]
+        this._outScreenOffset = 64
     }
 
     setVar(...vars) {
@@ -89,7 +90,7 @@ export class ShotObject extends GameObject {
     }
 
     outOfScreen = function () {
-        return this.x + this.width < 0 || this.x - this.width > GS || this.y + this.height < 0 || this.y - this.height > GS
+        return this.x + this.width < -this._outScreenOffset || this.x - this.width > GS + this._outScreenOffset || this.y + this.height < -this._outScreenOffset || this.y - this.height > GS + this._outScreenOffset
     }
 }
 
@@ -347,7 +348,7 @@ class Boss extends Enemy {
             this.startRoutine('death',function(self){
                 if (this.whenTime(0)) { 
                     self.MoveDir(getRandom(0,360),1)
-                    gm.player.godMode = true
+                    // gm.player.godMode = true
                     gm.spawnEffect(EFC.bossBlast,gm.playLayer,self,{color:'rgb(255, 255, 255)'})
                     Am.playSFX("bossDead")
                 }
@@ -364,13 +365,17 @@ class Boss extends Enemy {
 
     final(){
         gm.spawnEffect(EFC.enemyBlast,gm.gameLayer,this)
-        // gm.spawnItem(this,"point")
-        sys.setTime(Math.min(sys.timer + (sys.roundTime-10)*60,sys.roundTime*60)) // 최대 30초까지만 시간 회복시켜줌
+        gm.spawnItem(this,"doubleRed")
+        // sys.setTime(Math.min(sys.timer + (sys.roundTime-10)*60,sys.roundTime*60)) // 최대 30초까지만 시간 회복시켜줌
         gm.ui.toggleKillBoss(false)
         gm.ui.bossBottomAlert.visible = false
         gm.ui.bossName.text = ""
         Am.playSFX("eDead")
         this.die()
+    }
+
+    die(){
+        super.die()
         gm.boss = null
     }
 
@@ -447,6 +452,7 @@ class Bullet extends ShotObject {
         this.autoDie = {
             outScreen: true
         }
+        this.noBonusKill = false
 
         this.addChild(this.baseSprite,this.subSprite)
 
@@ -530,6 +536,7 @@ class Bullet extends ShotObject {
     }
 
     kill(tag){
+        if(tag == 'bonus' && this.noBonusKill){return}
         super.kill()
         this.endAllRoutine()
         if(tag == 'bonus'){
@@ -899,10 +906,12 @@ class PlayerOption extends GameObject {
 class Item extends GameObject {
     constructor(pos,type){
         super()
+        this.set(pos)
         this.type = type
         this.radius = 12
         let tex = 'itemPoint'
         if(type == "bomb"){tex = 'itemBombPiece'}
+        if(type == "doubleRed"){tex = 'itemDoubleRed'}
         this.baseSprite = new Sprite({
             texture: Img.texture[tex],
             anchor: 0.5,
@@ -939,13 +948,15 @@ class Item extends GameObject {
 
     collected(){
         Am.playSFX("item")
+        if(this.type == 'doubleRed'){
+            sys.redScore *= 2
+        }
     }
 }
 
 class KillCircle extends GameObject {
     constructor(pos,radius=50){
         super()
-        console.log(radius)
         this.endRadius = radius
         this.set(pos)
         this.baseSprite = Img.sprite('reverseGradiusCircle', 100, 'rgba(255, 255, 255, 0.56)')
@@ -1034,8 +1045,17 @@ class Player extends GameObject {
         this.blockMove = false
         this.bombPower = 0
 
+        for(let optionKey in this.options){
+            for(let option of this.options[optionKey]){
+                option.die()
+            }
+        }
+        this.options = {}
+
         this.alpha = 1
         this.scale.set(1)
+        this.setBombPower(0)
+        this.appear()
     }
 
 
@@ -1759,8 +1779,9 @@ class GameUIEnemyBlock extends GameObject {
         for(let i=0;i<this.data.items.length;i++){
             for(let k=0;k<this.data.items[i].stack;k++){
                 this.itemUI.blt(Img.texture.itemEnemy[this.data.items[i].data.imageId], 0,0,64,64,j*18,0,16,16)
-                j++
+                j+=0.2
             }
+            j+=0.5
         }
     }
 
@@ -1818,6 +1839,8 @@ class ShopButton extends Button {
             anchor: {x:0.5,y:0.5}
         })
         this.addChild(this.price)
+
+        this.purchased = false
         
         this.image = new Sprite({anchor:0.5})
         this.addChild(this.image)
@@ -1825,10 +1848,10 @@ class ShopButton extends Button {
 
     updateData(data,enemy = true){
         this.data = data
+        this.data.price = (this.data.priceFormula) ? this.data.priceFormula() : this.data.price
         this.image.texture = (enemy) ? Textures.itemEnemy[data.imageId] : Textures.itemPlayer[data.imageId]
         this.price.text = String(data.price || '')
         this.baseSprite.tint = data.negative ? 'rgb(255, 119, 119)' : 'rgb(56, 56, 56)'
-        this.toggleValiable(true)
     }
 
 }
@@ -1843,6 +1866,8 @@ class GameUI extends GameObject{
         this.leftSide.removeChildren()
         this.updateObjects.length = 0
         gm.ui.enemyBlocks.length = 0
+        this.bossHealth.visible = false
+        this.toggleKillBoss(false)
         
         this.updateEnemyblockData()
         this.updateEnemyblockSpawnRate(0)
@@ -1870,6 +1895,9 @@ class GameUI extends GameObject{
             }
         }); 
 
+        this.roundText = new Text({ text: "스테이지", style: this.textStyle })
+        this.round = new Text({ text: "00/20", style: this.textStyle })
+
         this.goalScoreText = new Text({ text: "목표점수", style: this.textStyle })
         this.goalScore = new Text({ text: "000,000,000", style: this.textStyle })
 
@@ -1883,14 +1911,14 @@ class GameUI extends GameObject{
         this.coinText = new Text({ text: "Coin", style: this.textStyle, tint: 'rgb(255, 234, 49)' })
         this.coin = new Text({ text: "0", style: this.textStyle, tint: 'rgb(255, 234, 49)' })
 
-        this.addChild(this.goalScoreText, this.goalScore, this.curScoreText, this.curScore, this.blueScore, this.bigX, this.redScore, this.coinText, this.coin)
+        this.addChild(this.roundText, this.round, this.goalScoreText, this.goalScore, this.curScoreText, this.curScore, this.blueScore, this.bigX, this.redScore, this.coinText, this.coin)
         let stack = 0
         for(let i=0;i<this.children.length;i++){
             const child = this.children[i]
             child.anchor.set(0.5)
             child.x = GR + 150
             child.y = GY + 20 + stack
-            stack += [40,60,40,60,40,40,60,40][i]
+            stack += [40,60,40,60,40,60,40,40,60,40][i]
         }
 
         this.killBoss = new Container({
@@ -1938,8 +1966,8 @@ class GameUI extends GameObject{
             },
             onPress: function(){
                 sys.addEnemy(this.data)
-                gm.ui.updateShopButtons()
                 this.purchased = true
+                gm.ui.updateShopButtons()
                 this.toggleValiable(false)
                 Am.playSFX('ok')
             },
@@ -2026,7 +2054,9 @@ class GameUI extends GameObject{
                 gm.player.getItem(this.data)
                 sys.coin -= this.data.price || 0
                 this.toggleValiable(false)
+                this.purchased = true
                 gm.ui.updateShopButtons()
+                this.image.texture = Textures.itemEnemy[6]
                 Am.playSFX('ok')
             }        
             this.shopGroup.addItem(this.playerItemBtns[i])
@@ -2045,7 +2075,7 @@ class GameUI extends GameObject{
                 sys.coin -= sys.rerollPrice
                 sys.rerollPrice *= 2
                 gm.ui.rerollBtn.price.text = String(sys.rerollPrice)
-                sys.openShop()
+                sys.openShop(true)
                 Am.playSFX('ok')
             },
             position: {x: 170, y:550},
@@ -2214,6 +2244,10 @@ class GameUI extends GameObject{
         }
     }
 
+    updateStage(){
+        this.round.text = String(sys.stage).padStart(2,'0') + "/" + String(sys.stageMax).padStart(2,'0')
+    }
+
     updateBossHealth(){
         this.bossHealth.visible = !!gm.boss && gm.boss.health > 0
         if(!this.bossHealth.visible) return
@@ -2285,6 +2319,8 @@ class GameUI extends GameObject{
                             gm.selectedEnemyItem = null // 본인이 아니면 하이라이트 해제를 위한 초기화
                             d.toggleValiable(false)
                             d.onHighlight(false)
+                            d.purchased = true
+                            d.image.texture = Textures.itemEnemy[6]
                             gm.ui.updateShopButtons()
                             Am.playSFX('ok')
                         }
@@ -2317,9 +2353,9 @@ class GameUI extends GameObject{
             block.sRInBaseGague.height = 75 * ((frame % sys.enemys[i].spawnRate) / sys.enemys[i].spawnRate)
         }
     }
-    openShop(){
+    openShop(reroll = false){
         this.endAllRoutine()
-        this.updateShopData()
+        this.updateShopData(reroll)
         this.startRoutine('open',function(self){
             for(let i=0;i<self.shopButtons.length;i++){
                 if(this.whenTime(5)){
@@ -2334,20 +2370,42 @@ class GameUI extends GameObject{
             }
         })
     }
-    updateShopData(){
+    updateShopData(reroll){
         const data = sys.shopData
         this.enemyLeft.data = data.leftEnemy
-        this.enemyLeft.purchased = false
-        this.enemyLeft.baseSprite.updateData(data.leftEnemy)
+        
         this.enemyRight.data = data.rightEnemy
-        this.enemyRight.purchased = false
         this.enemyRight.baseSprite.updateData(data.rightEnemy)
 
+        if(!reroll){
+        this.enemyLeft.purchased = false
+        this.enemyRight.purchased = false
+        }
+        if(!this.enemyLeft.purchased){ this.enemyLeft.baseSprite.updateData(data.leftEnemy) }
+        if(!this.enemyRight.purchased){ this.enemyRight.baseSprite.updateData(data.rightEnemy) }
+
+
         for(let i=0;i<4;i++){
-            this.enemyItemBtns[i].updateData(data.enemyItems[i],true)
+            if(this.enemyItemBtns[i].data){
+                this.enemyItemBtns[i].data.price = (this.enemyItemBtns[i].data.priceFormula) ? this.enemyItemBtns[i].data.priceFormula() : this.enemyItemBtns[i].data.price
+            }
+            if(!reroll){ 
+                this.enemyItemBtns[i].purchased = false
+            }
+            if(!this.enemyItemBtns[i].purchased){
+                this.enemyItemBtns[i].updateData(data.enemyItems[i],true)
+            }
         }
         for(let i=0;i<4;i++){
-            this.playerItemBtns[i].updateData(data.playerItems[i],false)
+            if(this.playerItemBtns[i].data){
+                this.playerItemBtns[i].data.price = (this.playerItemBtns[i].data.priceFormula) ? this.playerItemBtns[i].data.priceFormula() : this.playerItemBtns[i].data.price
+            }
+            if(!reroll){
+                this.playerItemBtns[i].purchased = false
+            }
+            if(!this.playerItemBtns[i].purchased){
+                this.playerItemBtns[i].updateData(data.playerItems[i],false)
+            }
         }
         this.updateShopButtons() 
     }
@@ -2358,6 +2416,12 @@ class GameUI extends GameObject{
         this.enemyLeft.toggleValiable((newEnemyAble || hasLeftEnemy) && !this.enemyLeft.purchased)
         const hasRightEnemy = sys.enemys.find(enemy => enemy.enemy === this.enemyRight.data.enemy);
         this.enemyRight.toggleValiable((newEnemyAble || hasRightEnemy) && !this.enemyRight.purchased)
+        this.enemyItemBtns.forEach(btn => {
+            btn.toggleValiable(!btn.purchased && sys.coin >= (btn.data.price || 0))
+        })
+        this.playerItemBtns.forEach(btn => {
+            btn.toggleValiable(!btn.purchased && sys.coin >= (btn.data.price || 0))
+        })
     }
     hideShop(){
         this.endAllRoutine()
@@ -2448,15 +2512,17 @@ export class SystemManager {
         this.reset()
 
         this.bossTest = false
+        this.sandBox = false
     }
 
     reset(){
         this.stage = 0
+        this.stageMax = 20
         this.goalScore = 0
 
         this.blueScore = 0
         this.redScore = 1
-        this.coin = 10
+        this.coin = 20
         this.score = 0
         this.totalScore = 0
 
@@ -2479,7 +2545,7 @@ export class SystemManager {
         this.comboTimeDefaultMax = 60
         
         this.enemys = [ ]
-        this.bossHealth = 100
+        // this.bossHealth = 100
         this.bossSpawned = false
 
         this.rerollPrice = 5
@@ -2519,12 +2585,11 @@ export class SystemManager {
     }
 
     set redScore(value){
-        this._redScore = Math.floor(value)
         if(!gm){return}
         if(gm.boss){
-            this._redScore = 1
             return
         }
+        this._redScore = Math.floor(value)
         gm.ui.redScore.text = String(this._redScore)
         this.updateTotalScore()
     }
@@ -2565,6 +2630,17 @@ export class SystemManager {
         this.combo++
         this.comboTime = Math.max(10,this.comboTimeDefaultMax - this.combo + 1)
         this.comboTimeMax = this.comboTime
+        if(this.combo == 50){
+            const data = bossArcaive[getRandom(0, Math.max(1, sys.stage / 3 - 1))]
+            if(!gm.boss || gm.boss._killed){
+                gm.spawnBoss(pos(0,0),data.enemy)
+                gm.boss.MoveTime(pos(GS*0.5,GS*0.25),60,Easing.easeOutCubic)
+                gm.ui.toggleKillBoss(true)
+                gm.boss.finalMode = 2
+                data.health = 500 * sys.stage / 3
+                gm.activeBoss(data)
+            }
+        }
         gm.ui.updateCombo()
     }
 
@@ -2605,11 +2681,13 @@ export class SystemManager {
         this.addEnemy(enemyArcaive.smallBullet)
         this.enemys[0].getItem(enemyItem.coin)
         this.stage = 1
+        gm.ui.updateStage()
         const constScore = [1000, this._baseScore]
         this.setGoalScore((constScore.length >= this.stage) ? constScore[this.stage-1] : this._baseScore * Math.pow(this._growthScore, this.stage-1))
     }
 
     startStage(){
+        if(this.sandBox){return}
         if(this.stage == 0){
             this.firstStage()
         }else{
@@ -2632,7 +2710,7 @@ export class SystemManager {
         // this.startRound()
     }
 
-    openShop(){
+    openShop(reroll = false){
         const eNegList = Object.keys(enemyItem).filter(key => enemyItem[key].negative)
         const eNotNegList = Object.keys(enemyItem).filter(key => !enemyItem[key].negative)
         const elist = Object.keys(enemyArcaive)
@@ -2653,7 +2731,7 @@ export class SystemManager {
         // this.shopData.enemyItems[0] = enemyItem.killEnemy
         // this.shopData.enemyItems[1] = enemyItem.levelUp
 
-        gm.ui.openShop()
+        gm.ui.openShop(reroll)
     }
 
     startRound(){
@@ -2665,8 +2743,9 @@ export class SystemManager {
                 sys.setTime(sys.roundTime*60)
                 Am.playSFX("startStage")
                 // sys.spawnBoss(bossArcaive[2])
-                if(sys.stage % 2 == 0){
-                    sys.spawnBoss(bossArcaive[sys.stage /2-1])
+                if(sys.stage % 3 == 0){
+                    sys.spawnBoss(bossArcaive[sys.stage /3-1])
+                    sys.setTime(sys.roundTime*1.5*60)
                 }
             }
             if(this.whileTime(0,sys.timer > 0)){
@@ -2704,7 +2783,18 @@ export class SystemManager {
     }
 
     roundEnd(){
-        if(gm.boss) gm.boss.finalMode = 0
+        if(gm.boss) {
+            gm.boss.finalMode = 0
+            gm.startRoutine('bossMove',function(self){
+                if(!gm.boss){this.end(); return;}
+                if(this.whenTime(0)){
+                    gm.boss.MoveTime(pos(GS+100,0),60,Easing.easeOutCubic)
+                }
+                if(this.whenTime(60)){
+                    gm.boss.die()
+                }
+            })
+        }
         gm.killAll()
         gm.player.getGodTime(0)
         gm.effectBox.scoreAlert()
@@ -2720,6 +2810,7 @@ export class SystemManager {
         this.blueScore = 0
         this.redScore = 1
         this.stage++
+        gm.ui.updateStage()
         this.setGoalScore(Math.floor(this.goalScore * 5))
         this.startStage() // 다음 라운드 시작
     }
@@ -2745,9 +2836,11 @@ export class SystemManager {
                 }
             }
             if(this.whenTime(60)){
-                gm.boss.finalMode = 2
-                data.health = sys.bossHealth * Math.pow(2, sys.stage - 1)
-                gm.activeBoss(data)
+                if(gm.boss){
+                    gm.boss.finalMode = 2
+                    data.health = 500 * sys.stage / 3
+                    gm.activeBoss(data)
+                }
             }
         })
     }
@@ -2840,10 +2933,11 @@ export class GameManager extends SceneObject {
         for(let bullet of this.bullets){ bullet.die() }
         for(let enemy of this.enemys){ enemy.die() }
         for(let item of this.items){ item.die() }
-        if(this.boss){ this.boss.die() }
+        if(this.boss){ this.boss.die(); this.boss = null }
         this.endAllRoutine(true)
         this.ui.endAllRoutine(true)
         sys.reset()
+        this.player.reset()
         this.ui.reset()
     }
 
@@ -2903,8 +2997,7 @@ export class GameManager extends SceneObject {
         return enemy
     }
     spawnItem(pos, type){
-        const item = new Item(type)
-        item.set(pos)
+        const item = new Item(pos, type)
         this.items.push(item) // 오브젝트 업데이트
         this.pOptionLayer.addChild(item) // 스프라이트 레이어
         return item

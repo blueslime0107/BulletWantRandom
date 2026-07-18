@@ -52,11 +52,10 @@ const enemyArcaive = {
             if(this.whenTime(0)){
                 self.MoveDir(90,1)
             }
-            this.whenTime(30)
-            if(this.whenTime(60)){
+            this.whenTime(90)
+            if(this.whileTime(5,this.repeat < self.level)){
                 Am.playSFX("lazer")
-                for(let i=0;i<self.level;i++){
-                gm.spawnBentLazer(1,self,12).MoveDir(lookPoint(self,gm.player)+getRandom(-10,10),8).startRoutine('',function(self){
+                gm.spawnBentLazer(1,self,24).MoveDir(lookPoint(self,gm.player)+getRandom(-10,10),4).startRoutine('',function(self){
                     if(this.whenTime(0)){
                         self.count = getRandomF(0.1,0.5)
                     }
@@ -64,7 +63,6 @@ const enemyArcaive = {
                         self.dir += self.count
                     }
                 })
-            }
             }
         }
     },
@@ -175,22 +173,32 @@ const enemyArcaive = {
     },
     electricRush2: {
         enemy: EData.greenSpread,
-        health: 50,
-        blue: 20,
+        health: 70,
+        blue: 50,
         red: 1,
-        upgradeBlueRed: {blue: 30, red: 2},
-        spawnRate: 120,
+        upgradeBlueRed: {blue: 50, red: 2},
+        spawnRate: 240,
         spell: function (self) {
             if(this.whenTime(0)){
-                self.MoveDir(getRandom(-4,4)+90,4)
+                self.MoveDirSpdEase(getRandom(-4,4)+90,6,0,60,Easing.linear)
             }
-            this.whenTime(30)
+            if(this.whenTime(30)){
+                this.count = 1
+                self.MoveDirSpdEase(getRandom(0,360),4,0,120,Easing.linear)
+            }
             if(this.whileTime(5,this.repeat < 4 + 2*self.level)){
                 const rnd = getRandom(0,119)
                 for(let i=0;i<360;i+=120){
                     Am.playSFX("tan2")
                     gm.spawnBullet(BData.ring,4,self).MoveDirSpdEase(i+rnd,5,getRandomF(2,3),60,Easing.linear)
                 }
+            }
+            if(this.whenTime(120)){
+                this.currentLine = 1
+            }
+            if(this.count == 1){
+                self.x = Math.max(200,Math.min(GS-200,self.x))
+                self.y = Math.max(100,Math.min(280,self.y))
             }
         }
     },
@@ -223,34 +231,39 @@ const enemyArcaive = {
     },
     bomb2: {
         enemy: EData.redCross,
-        health: 10,
+        health: 100,
         blue: 20,
         red: 2,
         upgradeBlueRed: {blue: 0, red: 3},
-        spawnRate: 128,
+        spawnRate: 360,
         spell: function (self) {
             if(this.whenTime(0)){
-                self.MoveDir(getRandom(-4,4)+90,4)
+                self.MoveDirSpdEase(getRandom(-4,4)+90,5,0,180,Easing.linear)
             }
-            if(this.whenTime(60)){
-                gm.spawnBullet(BData.light,1,self).MoveDirSpdEase(getRandom(0,360),4,0,60,Easing.linear).startRoutine("",function(self){
+            if(this.whenTime(120)){
+                const enemy = self
+                gm.spawnBullet(BData.light,1,self).MoveDirSpdEase(lookPoint(self,gm.player)+getRandom(-30,30),4,0,60,Easing.linear).startRoutine("",function(self){
                     if(this.whenTime(0)){
                         this.list = []
                         const rnd = getRandomList([0,45])
                         Am.playSFX("lazer")
-                        for(let i=0;i<360;i+=90){
-                            this.list.push(gm.spawnLazer(BData.spear,1,self.pos,goAngle(self.pos,i+rnd,300),60,50+10*self.level))
+                        for(let i=0;i<360;i+=[90,90,60,60,45,45,30,30,15,15][enemy.level-1]){
+                            this.list.push(gm.spawnLazer(BData.spear,1,self.pos,goAngle(self.pos,i+rnd,[100,150,200,250,300,320,340,360,360,360][enemy.level-1]),60,60))
                         }
                     }
                     if(this.whileTime(0,this.repeat < 60)){
                         for(const lazer of this.list){
                             lazer.startPos = self.pos
                             lazer.endPos = goAngle(self.pos,lazer.dir,300)
+                            lazer.setDir(lazer.dir+0.5)
                             lazer.replaceBullet()
                         }
                     }
                     if(this.whenTime(0)){self.kill()}
                 }).blendMode = "add"
+            }
+            if(this.whenTime(120)){
+                self.MoveDirSpdEase(getRandom(-4,4)+90,0,3,60,Easing.linear)
             }
         }
     }
@@ -508,11 +521,12 @@ const playerItem = {
             option.addChild(option.sprite)
             option.update = function(){
                 const length = gm.player.options.circle.length
-                this.x = gm.player.x + centerSpread(length,38,this.index)
-                this.y = gm.player.y + 32
+                const pos = goAngle(gm.player, 360 * this.index / length + gm.player.shotCount*2, 64)
+                this.x = pos.x
+                this.y = pos.y
             }
             option.updateShot = function(shotCount){
-                if(shotCount % 5 == 0){
+                if(shotCount % 8 == 0){
                     gm.player.spawnShot({texture:Img.texture.playerSubShotCircle, scale:2,anchor:0.5}, 5, this)
                     .MoveDir(-90,10).startRoutine("",function(self){
                         if(this.whileTime(0)){
@@ -579,6 +593,42 @@ const playerItem = {
             gm.pOptionLayer.addChild(option)
         }
     },
+    optionSquare:{
+        imageId: 3,
+        price: 200,
+        onEquip: function(){
+            if(!this.options.square) {
+                this.options.square = new GameObjectGroup()
+                gm.addUpdate(this.options.square)
+            }
+            const option = new GameObject()
+            option.sprite = new Sprite({
+                texture: Textures.playerOptionSquare,
+                scale: 2,
+                anchor: 0.5
+            })
+            option.addChild(option.sprite)
+            option.update = function(){
+                this.x = gm.player.x
+                this.y = gm.player.y + this.index *20 + 48
+            }
+            option.updateShot = function(shotCount){
+                if(shotCount % 4 == 0){
+                    gm.player.spawnShot({texture:Img.texture.playerSubShotSquare, scale:2,anchor:0.5}, 5, this)
+                    .MoveDir(-90,40).startRoutine("",function(self){
+                        if(this.whileTime(0)){
+                            self.x = gm.player.x
+                        }
+                    }).angle = -90
+                }
+            }
+            option.index = this.options.square.length
+
+            
+            this.options.square.push(option)
+            gm.pOptionLayer.addChild(option)
+        }
+    },
     speedUp: {
         imageId: 4,
         price: 50,
@@ -589,6 +639,9 @@ const playerItem = {
     healthUp: {
         imageId: 5,
         price: 100,
+        priceFormula: function(){
+            return 100 * Math.max(1, (sys.liveMax - 2) * 5)
+        },
         onEquip: function(){
             sys.liveMax += 1
             sys.setLive(sys.liveMax)

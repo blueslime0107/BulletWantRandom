@@ -163,6 +163,7 @@ export const GameObjectBase = Base => class extends Base {
         this.isMoving = false
 
         this.count = 0 //마킹용
+        this.frame = 0
         this.updateObjects = []
     }
 
