@@ -1031,6 +1031,8 @@ class Player extends GameObject {
         this.bombGague.strokeCircle(75,75,68,12,'rgba(87, 87, 87, 0.53)')
 
         this.reset()
+
+        this.mobile = true
     }
 
     reset(){
@@ -1044,6 +1046,7 @@ class Player extends GameObject {
         this.shotAble = true
         this.blockMove = false
         this.bombPower = 0
+        this.touchStartPlayerPos = {x: this.x, y: this.y}
 
         for(let optionKey in this.options){
             for(let option of this.options[optionKey]){
@@ -1070,6 +1073,31 @@ class Player extends GameObject {
 
     updateMove(){
         if(this.blockMove){return}
+        if(this.mobile){
+            this.updateTouchMove()
+        }else{
+            this.updateKeyBoardMove()
+        }
+    }
+
+    updateTouchMove(){
+        if(Input.pointerPressed){
+            this.touchStartPlayerPos.x = this.x
+            this.touchStartPlayerPos.y = this.y
+        }
+        if(Input.isDragging()){
+            const delta = Input.getDragDelta()
+            this.x = this.touchStartPlayerPos.x + delta.x
+            this.y = this.touchStartPlayerPos.y + delta.y
+        }
+
+        if(this.x < 0 + this.radius + this.borderOffset) this.x = 0 + this.radius + this.borderOffset
+        if(this.x > GS - this.radius - this.borderOffset) this.x = GS - this.radius - this.borderOffset
+        if(this.y < 0 + this.radius + this.borderOffset) this.y = 0 + this.radius + this.borderOffset
+        if(this.y > GS - this.radius - this.borderOffset) this.y = GS - this.radius - this.borderOffset
+    }
+
+    updateKeyBoardMove(){
         let inputX = 0
         let inputY = 0
         if (Input.isDown(KeyBind.LEFT)) inputX -= 1
@@ -1091,6 +1119,13 @@ class Player extends GameObject {
         if (this.y > GS - this.radius - this.borderOffset) this.y = GS - this.radius - this.borderOffset
     }
 
+    pressedShot(){
+        return (this.mobile) ? Input.isDragging() : Input.isDown(KeyBind.OK)
+    }
+    pressedBomb(){
+        return (this.mobile) ? Input.isMultiTouch() : Input.isPressed(KeyBind.SUBKEY)
+    }
+
     updateOptions(){
         // if(Input.isReleased(KeyBind.SLOW)){
         //     for(let i=0;i<this.options.length;i++){
@@ -1109,7 +1144,7 @@ class Player extends GameObject {
     updateShots(){
         if(!this.shotAble) return
         this.shotCount++
-        if(Input.isDown(KeyBind.OK)){
+        if(this.pressedShot()){
             if(this.shotCount % this.shotMainDelay == 0){
                 for(let i=0;i<this.power;i++){
                     this.spawnShot({texture: Textures.playerMainShot, angle:-90,scale:2,anchor:{x:0.8,y:0.5}},10, 
@@ -1193,7 +1228,7 @@ class Player extends GameObject {
     }
 
     updateBomb(){
-        if(Input.isPressed(KeyBind.SUBKEY) && this.bombPower >= 100){
+        if(this.pressedBomb() && this.bombPower >= 100){
             this.spawnBomb()
             this.setBombPower(0)
             Am.playSFX('slash')

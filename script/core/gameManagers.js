@@ -25,6 +25,7 @@ export class InputManager {
 
     this.activeTouchId = null; // 현재 조작 중인 터치 ID (멀티터치 방지용)
     this.multiTouch = false; // 두 손가락 이상 감지 여부
+    this.multiTouchPressed = false; // 이번 프레임에 두 번째 터치가 시작되었는지 여부
     // ─────────────────────────────────────────
     // 키보드
     this._downHandler = (e) => {
@@ -71,6 +72,10 @@ export class InputManager {
     };
 
     this._startDrag = (e) => {
+      if (e.touches && e.touches.length > 1) {
+        this.multiTouch = true;
+        this.multiTouchPressed = true;
+      }
       if (this.dragging) return;
 
       const touch = e.changedTouches ? e.changedTouches[0] : e;
@@ -232,6 +237,9 @@ export class InputManager {
   isMultiTouch() {
     return this.multiTouch;
   }
+  isMultiTouchPressed() {
+    return this.multiTouchPressed;
+  }
   getDragDelta() {
     return {
       x: this.dragDelta.x,
@@ -251,6 +259,7 @@ export class InputManager {
     this.released.clear();
     this.pointerPressed = false;
     this.pointerReleased = false;
+    this.multiTouchPressed = false;
     // 드래그 값은 endFrame에서 초기화하지 않음
   }
 
