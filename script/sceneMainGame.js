@@ -1202,6 +1202,11 @@ class Player extends GameObject {
             }
             if(this.whenTime(60)){
                 self.blockMove = false
+                if(self.mobile){
+                    const delta = Input.getDragDelta()
+                    self.touchStartPlayerPos.x = self.x - delta.x
+                    self.touchStartPlayerPos.y = self.y - delta.y
+                }
                 self.shotAble = true
                 self.getGodTime(120)
             }
