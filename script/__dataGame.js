@@ -276,7 +276,7 @@ const bossArcaive = [
             if(this.whileTime(40)){
                 Am.playSFX("tan1")
                 for(let i=0;i<360;i+=10){
-                    gm.spawnBullet(BData.gun,6,self).MoveDirSpdEase(i,8,getRandomF(3,5),60,Easing.linear)
+                    gm.spawnBullet(BData.gun,6,self).MoveDirSpdEase(i,8,getRandomF(3,5),60,Easing.linear).noBonusKill = true
                 }
                 if(this.repeat % 3 == 0){
                     self.MoveTime(pos(GS*0.5+getRandom(-100,100),GS*0.25+getRandom(-20,40)),30,Easing.easeInOutCubic)
@@ -295,8 +295,8 @@ const bossArcaive = [
                         if(this.whileFrame(60)){
                             self.dir += 1
                         }
-                    })
-                    gm.spawnBentLazer(2,self,40).MoveDir(i,6)
+                    }).noBonusKill = true
+                    gm.spawnBentLazer(2,self,40).MoveDir(i,6).noBonusKill = true
                 }
                 self.MoveTime(pos(gm.player.x,GS*0.25+getRandom(-20,40)),60,Easing.easeInCubic)
             }
@@ -321,7 +321,7 @@ const bossArcaive = [
                             }
                             self.setScale(1+this.repeat/60)
                         }
-                    })
+                    }).noBonusKill = true
                 }
             }
         }
@@ -342,7 +342,7 @@ const bossArcaive = [
                                 Am.playSFX("kira2")
                                 self.MoveDir(lookPoint(self,gm.player),4)
                             }
-                        })
+                        }).noBonusKill = true
                     }
                 }
             }
@@ -353,7 +353,7 @@ const bossArcaive = [
             if(this.whileTime(10,this.repeat < 3)){
                 for(let i=0;i<360;i+=20){
                     for(let j=0;j<2;j++){
-                        gm.spawnBullet(BData.paper,8,self).MoveDirSpdEase(i+this.repeat*4.7,0,[4,6][j],60,Easing.linear)
+                        gm.spawnBullet(BData.paper,8,self).MoveDirSpdEase(i+this.repeat*4.7,0,[4,6][j],60,Easing.linear).noBonusKill = true
                     }
                 }
             }
@@ -375,6 +375,7 @@ const bossArcaive = [
                             .MoveDirSpdEase(i+this.repeat*8.2,5,0,20,Easing.linear)
                             .startRoutine('',function(self){if(this.whenTime(20)){self.MoveDirSpdEase(self.dir,0,6,120,Easing.linear)}})
                             bullet.blendMode = "add"
+                            bullet.noBonusKill = true
                         }
                     }
                 })
@@ -394,7 +395,8 @@ const bossArcaive = [
                 Am.playSFX("tan1")
                 self.startRoutine('',function(self){
                     for(let i=0;i<5;i++){
-                        gm.spawnBullet([BData.circle,BData.darksnow,BData.big,BData.oval,BData.veryBig][i],4,self).MoveDir(getRandom(0,360),getRandomF(4,8)).blendMode = "add"
+                        let b = gm.spawnBullet([BData.circle,BData.darksnow,BData.big,BData.oval,BData.veryBig][i],4,self).MoveDir(getRandom(0,360),getRandomF(4,8)).blendMode = "add"
+                        b.noBonusKill = true
                     }
                 })
             }
@@ -410,7 +412,7 @@ const bossArcaive = [
                 Am.playSFX("lazer1")
                 for(let i=0;i<2;i++){
                     const startPos = goAngle(self.pos,this.count-90+180*i,(this.repeat-1)*15)
-                    gm.spawnLazer(BData.lazer,2,startPos,goAngle(startPos,this.count,900),60,30)
+                    gm.spawnLazer(BData.lazer,2,startPos,goAngle(startPos,this.count,900),60,30).noBonusKill = true
                 }
             }
             if(this.whenTime(60)){
@@ -468,7 +470,7 @@ const enemyItem = {
     },
     healthUP: {
         imageId: 5,
-        temporary: true,
+        temporary: true, // 아이템 표시에 나오지 않음
         negative: true,
         onEquip: function(){
             this.setHealth(this.health*2)
@@ -477,7 +479,7 @@ const enemyItem = {
         }
     },
     barrier: {
-        imageId: 7,
+        imageId: 8,
         negative: true,
         onSpawn: function(stack){
             this.getGodTime(40*stack)
@@ -492,6 +494,38 @@ const enemyItem = {
         price: 20,
         onEquip: function(){
             sys.removeEnemy(this)
+        }
+    },
+    killCircleBarrier: {
+        imageId: 6,
+        price: 5,
+        negative: true,
+        static: true, // 하나만 획득 가능
+        onDamage: function(stack,count,attacker){
+            if(attacker == 'killCircle'){
+                this.health += count
+            }
+        }
+    },
+    lucky: {
+        imageId: 7,
+        price: 100,
+        onDeath: function(stack){
+            if(getRandom(0,100) < 10*stack){
+                this.whenDeadScore()
+                this.whenDeadScore()
+                this.whenDeadScore()
+                this.whenDeadScore()
+                this.whenDeadScore()
+            }
+        }
+    },
+    healthDown: {
+        imageId: 9,
+        price: 300,
+        temporary: true,
+        onEquip: function(){
+            this.setHealth(this._data.health)
         }
     }
 }
@@ -653,9 +687,60 @@ const playerItem = {
         onGraze: function(stack){
             gm.player.setBombPower(gm.player.bombPower + stack)
         }
-
+    },
+    bombSpeedUp: {
+        imageId: 8,
+        price: 30,
+        onEquip: function(){
+            gm.player.bombSpeed += 0.5
+        }
+    },
+    bombRadiusUp: {
+        imageId: 7,
+        price: 200,
+        onEquip: function(){
+            gm.player.bombRadius += 0.5
+        }
+    },
+    grazeRadiusUp: {
+        imageId: 9,
+        price: 200,
+        onEquip: function(){
+            gm.player.grazeRadius += 12
+        }
+    },
+    shopReroll: {
+        imageId: 10,
+        price: 5000,
+        static: true,
+        onReroll: function(){
+            this.shopRerollConsumed = this.shopRerollConsumed || false
+            if(!gm.ui.enemyLeft.purchased){return}
+            if(!gm.ui.enemyRight.purchased){return}
+            for(let i=0;i<4;i++){
+                if(!gm.ui.enemyItemBtns[i].purchased){return}
+            }
+            for(let i=0;i<4;i++){
+                if(!gm.ui.playerItemBtns[i].purchased){return}
+            }
+            gm.ui.enemyLeft.purchased = false; gm.ui.enemyLeft.toggleValiable(true)
+            gm.ui.enemyRight.purchased = false; gm.ui.enemyRight.toggleValiable(true)
+            for(let i=0;i<4;i++){
+                gm.ui.enemyItemBtns[i].purchased = false; gm.ui.enemyItemBtns[i].toggleValiable(true)
+                gm.ui.playerItemBtns[i].purchased = false; gm.ui.playerItemBtns[i].toggleValiable(true)
+            }
+            this.shopRerollConsumed = true
+        },
+        onRoundEnd: function(){
+            this.shopRerollConsumed = false
+        }
+    },
+    goldEqualsBlue: {
+        imageId: 11,
+        price: 1000,
+        static: true,
+        onRoundEnd: function(){
+            sys.blueScore += sys.coin
+        }
     }
-    // barrier: { 
-    //     imageId: 5
-    // },
 }

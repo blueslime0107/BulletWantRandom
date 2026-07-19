@@ -165,9 +165,10 @@ class Enemy extends ShotObject {
         this.startRoutine("spell",spell.spell)
     }
 
-    damage(count){
+    damage(count,attacker=''){
         if(this.godMode){return}
         this.health -= count
+        this.triggerItem('onDamage', count, attacker)
         if(this.health <= 0){
             this.kill()
         }
@@ -266,9 +267,9 @@ class Enemy extends ShotObject {
         this.die()
     }
 
-    triggerItem(trigger){
+    triggerItem(trigger, ...args){
         for(let item of this.items){
-            item.data[trigger]?.call(this, item.stack)
+            item.data[trigger]?.call(this, item.stack, ...args)
         }
     }
 
@@ -520,7 +521,7 @@ class Bullet extends ShotObject {
         if(!this.noDamage && collideCircle(this, gm.player)){
             gm.player.damage()
         }
-        if(!this.noDamage && collideCircle(this, gm.player, 64)){
+        if(!this.noDamage && collideCircle(this, gm.player, gm.player.grazeRadius)){
             this.tint = 'rgb(255, 145, 145)'
             if(!this.grazed){
                 gm.player.grazed(this)
@@ -535,11 +536,11 @@ class Bullet extends ShotObject {
         }
     }
 
-    kill(tag){
-        if(tag == 'bonus' && this.noBonusKill){return}
+    kill(tag,bonus=false){
+        if(bonus && tag == 'killCircle' && this.noBonusKill){return}
         super.kill()
         this.endAllRoutine()
-        if(tag == 'bonus'){
+        if(bonus){
             sys.redScore+=1
         }
         this.startRoutine("die",function(self){
@@ -565,6 +566,8 @@ class Lazer extends GameObject {
         this.guideTime = data.guideTime || 0
         this.atkTime = data.atkTime || 60
         this.attacking = false
+
+        this.noBonusKill = false
 
         
         this.lazerPoints = [new PIXI.Point(this.x, this.y), new PIXI.Point(this.x, this.y)]
@@ -621,6 +624,7 @@ class Lazer extends GameObject {
     }
     spBullet(){
         const bullet = gm.spawnBullet(BData.circle,6,this.startPos,0,0)
+        bullet.noBonusKill = this.noBonusKill
         bullet.setAutoDie({outScreen:false})
         bullet.baseSprite.visible = false
         bullet.subSprite.visible = false
@@ -736,6 +740,8 @@ class BentLazer extends ShotObject {
         this.length = length
         this._frame = 0
         this.posHistory = []
+
+        this.noBonusKill = false
         this.initMesh(width)
     }
 
@@ -777,6 +783,7 @@ class BentLazer extends ShotObject {
 
         if(this._frame < this.length){
             const bullet = gm.spawnBullet(BData.circle,this.color,this.startPos)
+            bullet.noBonusKill = this.noBonusKill
             bullet.baseSprite.visible = false
             bullet.subSprite.visible = false
             this.bullets.push(bullet)
@@ -980,12 +987,12 @@ class KillCircle extends GameObject {
         super.update()
         for(let bullet of gm.getBullets()){
             if(collideCircle(bullet,this)){
-                bullet.kill('bonus')
+                bullet.kill('killCircle',true)
             }
         }
         for(let enemy of gm.getEnemys()){
             if(collideCircle(enemy,this)){
-                enemy.damage(1)
+                enemy.damage(1,'killCircle')
             }
         }
     }
@@ -1032,7 +1039,7 @@ class Player extends GameObject {
 
         this.reset()
 
-        this.mobile = true
+        this.mobile = isMobileDevice()
     }
 
     reset(){
@@ -1054,6 +1061,10 @@ class Player extends GameObject {
             }
         }
         this.options = {}
+
+        this.bombSpeed = 1
+        this.bombRadius = 2
+        this.grazeRadius = 64
 
         this.alpha = 1
         this.scale.set(1)
@@ -1248,16 +1259,16 @@ class Player extends GameObject {
         sprite.addChild(baseSprite)
         gm.efcBulletAbove.addChild(sprite)
         gm.addUpdate(sprite)
-        sprite.MoveDir(-90,1)
+        sprite.MoveDir(-90,this.bombSpeed)
         sprite.startRoutine("test",function(self){
             if(this.whileFrame(10)){
-                self.scale.x = frameMove(1,2,this.repeat,10,Easing.linear)
+                self.scale.x = frameMove(1,gm.player.bombRadius,this.repeat,10,Easing.linear)
                 self.radius = self.scale.x * 50
                 self.scale.y = self.scale.x
             }
             this.whenTime(60)
             if(this.whileFrame(10)){
-                self.scale.x = frameMove(2,0,this.repeat,10,Easing.linear)
+                self.scale.x = frameMove(gm.player.bombRadius,0,this.repeat,10,Easing.linear)
                 self.radius = self.scale.x * 50
                 self.scale.y = self.scale.x
             }
@@ -1273,7 +1284,7 @@ class Player extends GameObject {
             if(this.whileTime(0)){
                 for(let bullet of gm.getBullets()){
                     if(collideCircle(bullet,self)){
-                        bullet.kill('bonus')
+                        bullet.kill('bomb',true)
                         self.count++
                     }
                 }
@@ -1405,6 +1416,7 @@ class Player extends GameObject {
         if(item.onEquip){
             item.onEquip.call(this)
         }
+        gm.ui.updatePlayerItems()
     }
 
     triggerItem(trigger){
@@ -1972,6 +1984,18 @@ class GameUI extends GameObject{
         this.killBossText.setMask({ mask: this.killBossMask})
         this.killBoss.addChild(this.killBossBox, this.killBossMask, this.killBossText)
         this.addChild(this.killBoss)
+
+        this.debugButton = new Button({
+            position: {x: GR + 150, y: GY + 600},
+            touchArea: {width: 150, height: 64},
+            onPress: () => {
+                sys.debug()
+            }
+        })
+        this.debugButtonText = new Text({ text: "DEBUG", style: this.textStyle, tint: 'rgb(255, 255, 255)', anchor: 0.5 })
+        this.debugButton.addChild(this.debugButtonText)
+        this.addChild(this.debugButton)
+        gm.addUpdate(this.debugButton)
     }
 
     _initLeftSide(){
@@ -2091,12 +2115,13 @@ class GameUI extends GameObject{
             this.playerItemBtns[i].set(170 * i + 85, 370)    
             this.playerItemBtns[i].onPress = function(){
                 if(this.data.price > sys.coin){return}
+                if(this.data.static && gm.player.items.find(item => item.id == this.data.id)){return}
                 gm.player.getItem(this.data)
                 sys.coin -= this.data.price || 0
                 this.toggleValiable(false)
                 this.purchased = true
                 gm.ui.updateShopButtons()
-                this.image.texture = Textures.itemEnemy[6]
+                this.image.texture = Img.texture.itemNo
                 Am.playSFX('ok')
             }        
             this.shopGroup.addItem(this.playerItemBtns[i])
@@ -2256,6 +2281,14 @@ class GameUI extends GameObject{
         this.liveGague = new Container({position:{x:GX,y:GY}})
         this.lives = []
         this.addChild(this.liveGague)
+
+        this.playerItems = new Bitmap({
+            position: {x:GX,y:GY},
+            anchor: {x: 0, y: 0},
+            width: 48,
+            height: GS,
+        })
+        this.addChild(this.playerItems)
     }
 
     update(){
@@ -2351,16 +2384,19 @@ class GameUI extends GameObject{
                         if(isActive) Am.playSFX('select')
                     },
                     onPress: function(){
+                        if(sys.debugMode){
+                            gm.spawnEnemy(pos(getRandom(60,GS-60),-60),this.sprite.data)
+                        }
                         if(gm.selectedEnemyItem){
+                            if(gm.selectedEnemyItem.data.static && this.sprite.data.items.find(item => item.data === gm.selectedEnemyItem.data)){ Am.playSFX('cancel'); return }
                             this.sprite.data.getItem(gm.selectedEnemyItem.data)
                             sys.coin -= gm.selectedEnemyItem.data.price || 0
-                            console.log('Enemy item purchased:', gm.selectedEnemyItem.data)
                             const d = gm.selectedEnemyItem // 임시 저장
                             gm.selectedEnemyItem = null // 본인이 아니면 하이라이트 해제를 위한 초기화
                             d.toggleValiable(false)
                             d.onHighlight(false)
                             d.purchased = true
-                            d.image.texture = Textures.itemEnemy[6]
+                            d.image.texture = Img.texture.itemNo
                             gm.ui.updateShopButtons()
                             Am.playSFX('ok')
                         }
@@ -2411,11 +2447,13 @@ class GameUI extends GameObject{
         })
     }
     updateShopData(reroll){
+        if(reroll){
+            gm.player.triggerItem('onReroll')
+        }
         const data = sys.shopData
+
         this.enemyLeft.data = data.leftEnemy
-        
         this.enemyRight.data = data.rightEnemy
-        this.enemyRight.baseSprite.updateData(data.rightEnemy)
 
         if(!reroll){
         this.enemyLeft.purchased = false
@@ -2460,8 +2498,19 @@ class GameUI extends GameObject{
             btn.toggleValiable(!btn.purchased && sys.coin >= (btn.data.price || 0))
         })
         this.playerItemBtns.forEach(btn => {
-            btn.toggleValiable(!btn.purchased && sys.coin >= (btn.data.price || 0))
+            const isStatic = btn.data.static && gm.player.items.find(item => item.id == btn.data.id)
+            btn.toggleValiable(!btn.purchased && sys.coin >= (btn.data.price || 0) && !isStatic)
         })
+    }
+    updatePlayerItems(){
+        let y = GS-48
+        for(let i=0;i<gm.player.items.length;i++){
+            for(let j=0;j<gm.player.items[i].stack;j++){
+            this.playerItems.blt(Img.texture.itemPlayer[gm.player.items[i].data.imageId], 0, 0, 64, 64, 0, y, 48, 48)
+            y -= 12
+            }
+            y-=24
+        }
     }
     hideShop(){
         this.endAllRoutine()
@@ -2485,6 +2534,7 @@ class GameUI extends GameObject{
 
 class EnemyData {
     constructor(data){
+        this._data = data
         this.enemy = data.enemy
         this.health = data.health
         this.level = 1
@@ -2591,11 +2641,15 @@ export class SystemManager {
         this.rerollPrice = 5
 
         this.gameover = false
+        this.debugMode = false
     }
 
     set coin(value){
-        this._coin = value
         if(!gm){return}
+        if(gm.boss){
+            return
+        }
+        this._coin = value
         gm.ui.coin.text = String(this._coin)
     }
 
@@ -2614,8 +2668,11 @@ export class SystemManager {
     }
 
     set blueScore(value){
-        this._blueScore = value
         if(!gm){return}
+        if(gm.boss){
+            return
+        }
+        this._blueScore = value
         gm.ui.blueScore.text = String(this._blueScore)
         this.updateTotalScore()
     }
@@ -2642,8 +2699,13 @@ export class SystemManager {
         this.updateTimer()
     }
 
+    debug(){
+        gm.ui.hideShop()
+        this.debugMode = true
+    }
+
     updateTimer(){
-        if(this.timer > 0){
+        if(this.timer > 0 && !gm.boss){
             this.setTime(this.timer - 1)
             if(this.timer < 600 && this.timer % 60 == 0){
                 Am.playSFX("timer")
@@ -2785,7 +2847,6 @@ export class SystemManager {
                 // sys.spawnBoss(bossArcaive[2])
                 if(sys.stage % 3 == 0){
                     sys.spawnBoss(bossArcaive[sys.stage /3-1])
-                    sys.setTime(sys.roundTime*1.5*60)
                 }
             }
             if(this.whileTime(0,sys.timer > 0)){
@@ -2837,6 +2898,7 @@ export class SystemManager {
         }
         gm.killAll()
         gm.player.getGodTime(0)
+        gm.player.triggerItem('onRoundEnd')
         gm.effectBox.scoreAlert()
         this.score += this.totalScore
         this.blueScore = 0

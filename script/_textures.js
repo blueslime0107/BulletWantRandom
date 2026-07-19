@@ -111,8 +111,9 @@ const PlayerThings = {
 }
 
 const Items = {
-    itemEnemy: () => cropImg(Img.assets.item, 0, 0, 64, 64, 6, 2),
-    itemPlayer: () => cropImg(Img.assets.item, 0, 128, 64, 64, 6, 2),
+    itemEnemy: () => cropImg(Img.assets.item, 0, 0, 64, 64, 10, 1),
+    itemPlayer: () => cropImg(Img.assets.item, 0, 320, 64, 64, 10, 2),
+    itemNo: () => cropImg(Img.assets.item, 576, 576, 64, 64),
     itemDoubleRed: () => cropImg(Img.assets.bullet, 32, 528, 16, 16),
 }
 
