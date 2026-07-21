@@ -1007,12 +1007,16 @@ class Player extends GameObject {
         this.baseSprite = new Sprite({
             texture: Textures.playerIdle[0],
             anchor: 0.5,
-            scale:2
+            scale:2,
+            position: {x:-2,y:0}
         })
         this.addChild(this.baseSprite)
 
-        this.hitSprite = Img.sprite('circle', this.radius, 'rgb(255, 0, 0)')
-        this.addChild(this.hitSprite)
+        this.hitCircle = new Container()
+        this.hitCircle.addChild(Img.sprite('triangle', 48, 'rgba(255, 132, 132, 0.51)'))
+        this.hitCircle.addChild(Img.sprite('circle', 12, 'rgb(255, 0, 0)'))
+        
+        this.addChild(this.hitCircle)
 
         this.options = {}
         this.items = []
@@ -1044,6 +1048,7 @@ class Player extends GameObject {
 
     reset(){
         this.radius = 12
+        this.hitCircle.scale.set(this.radius / 12)
         this.speed = 6
         this.power = 1
         this.position.set(GS * 0.5, GS * 0.75)
@@ -1080,6 +1085,7 @@ class Player extends GameObject {
         this.updateShots()
         this.updateBomb()
         this.updateSprite()
+        this.hitCircle.angle+=3
     }
 
     updateMove(){
@@ -1173,7 +1179,6 @@ class Player extends GameObject {
     damage(){
         if(this.godMode){return}
         gm.killAll(['bullet','enemy'])
-        this.hitSprite.visible = false
         this.godMode = true
         this.shotAble = false
         this.blockMove = true
@@ -1899,6 +1904,7 @@ class ShopButton extends Button {
     }
 
     updateData(data,enemy = true){
+        if(!data){return}
         this.data = data
         this.data.price = (this.data.priceFormula) ? this.data.priceFormula() : this.data.price
         this.image.texture = (enemy) ? Textures.itemEnemy[data.imageId] : Textures.itemPlayer[data.imageId]
@@ -2115,7 +2121,6 @@ class GameUI extends GameObject{
             this.playerItemBtns[i].set(170 * i + 85, 370)    
             this.playerItemBtns[i].onPress = function(){
                 if(this.data.price > sys.coin){return}
-                if(this.data.static && gm.player.items.find(item => item.id == this.data.id)){return}
                 gm.player.getItem(this.data)
                 sys.coin -= this.data.price || 0
                 this.toggleValiable(false)
@@ -2458,6 +2463,8 @@ class GameUI extends GameObject{
         if(!reroll){
         this.enemyLeft.purchased = false
         this.enemyRight.purchased = false
+        this.enemyItemBtns.forEach(btn => btn.purchased = false)
+        this.playerItemBtns.forEach(btn => btn.purchased = false)
         }
         if(!this.enemyLeft.purchased){ this.enemyLeft.baseSprite.updateData(data.leftEnemy) }
         if(!this.enemyRight.purchased){ this.enemyRight.baseSprite.updateData(data.rightEnemy) }
@@ -2498,8 +2505,7 @@ class GameUI extends GameObject{
             btn.toggleValiable(!btn.purchased && sys.coin >= (btn.data.price || 0))
         })
         this.playerItemBtns.forEach(btn => {
-            const isStatic = btn.data.static && gm.player.items.find(item => item.id == btn.data.id)
-            btn.toggleValiable(!btn.purchased && sys.coin >= (btn.data.price || 0) && !isStatic)
+            btn.toggleValiable(!btn.purchased && sys.coin >= (btn.data.price || 0))
         })
     }
     updatePlayerItems(){
@@ -2813,11 +2819,15 @@ export class SystemManager {
     }
 
     openShop(reroll = false){
+        const oldShopData = this.shopData
         const eNegList = Object.keys(enemyItem).filter(key => enemyItem[key].negative)
         const eNotNegList = Object.keys(enemyItem).filter(key => !enemyItem[key].negative)
         const elist = Object.keys(enemyArcaive)
         const eilist = Object.keys(enemyItem)
-        const pilist = Object.keys(playerItem)
+        const pilist = Object.keys(playerItem).filter(key => !playerItem[key].static)
+        const pStaticList = Object.keys(playerItem).filter(
+            key => playerItem[key].static && gm.player.items.find(item => item.data.imageId == playerItem[key].imageId) === undefined
+        )
         this.shopData = {
             leftEnemy: enemyArcaive[elist[getRandom(0, elist.length)]],
             rightEnemy: enemyArcaive[elist[getRandom(0, elist.length)]],
@@ -2827,7 +2837,12 @@ export class SystemManager {
                 enemyItem[eNotNegList[getRandom(0, eNotNegList.length)]],
                 enemyItem[eNotNegList[getRandom(0, eNotNegList.length)]]
             ],
-            playerItems: Array.from({length: 4}, () => playerItem[pilist[getRandom(0, pilist.length)]]),
+            playerItems: [
+                playerItem[pilist[getRandom(0, pilist.length)]],
+                playerItem[pilist[getRandom(0, pilist.length)]],
+                playerItem[pilist[getRandom(0, pilist.length)]],
+                playerItem[pStaticList[getRandom(0, pStaticList.length)]],
+            ],
         }
 
         // this.shopData.enemyItems[0] = enemyItem.killEnemy

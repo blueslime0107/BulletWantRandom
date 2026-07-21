@@ -226,28 +226,88 @@ window.debugGui = gui;
   threeBgSprite.height = GH;
   app.stage.addChild(threeBgSprite);
   window.threeBgSprite = threeBgSprite;
-
-  // 폰트 로딩
-  await document.fonts.load('24px Cafe24Ohsquare');
-  await document.fonts.load('24px AnonymousPro');
-  await document.fonts.load('24px KaiseiHarunoUmi');
-  await document.fonts.ready;
-
-  // 텍스쳐 로딩
-  await Img.loadTextures()
-  await Tm.loadTextures()
-
-  // 오디오 로딩
-  await Am._ensureCtxResumed();
-  await Am.loadAudios(BGM, SFX);
-
-
-  // async 로딩
-  await Data.earlyinit()
-  init()
   resizeCanvas()
+
+  await LoadingResources()
+
   requestAnimationFrame(loop);
 })();
+
+async function LoadingResources() {
+  const total = 8;
+  let completed = 0;
+  const loadingUI = new Container();
+  const background = new Graphics();
+  const barBackground = new Graphics();
+  const barFill = new Graphics();
+  const title = new Text({
+    text: 'LOADING',
+    style: { fontFamily: 'AnonymousPro', fontSize: 40, fill: 0xffffff, letterSpacing: 4 },
+    anchor: 0.5,
+    position: { x: W * 0.5, y: H * 0.5 - 72 }
+  });
+  const resourceText = new Text({
+    text: 'Preparing...',
+    style: { fontFamily: 'AnonymousPro', fontSize: 18, fill: 0xaec9e8 },
+    anchor: 0.5,
+    position: { x: W * 0.5, y: H * 0.5 - 18 }
+  });
+  const progressText = new Text({
+    text: `0 / ${total}  0%`,
+    style: { fontFamily: 'AnonymousPro', fontSize: 16, fill: 0xffffff },
+    anchor: { x: 1, y: 0.5 },
+    position: { x: W * 0.5 + 210, y: H * 0.5 + 28 }
+  });
+  const barWidth = 420;
+  const barHeight = 14;
+
+  background.rect(0, 0, W, H).fill(0x08111d);
+  barBackground.rect(W * 0.5 - barWidth * 0.5, H * 0.5 + 20, barWidth, barHeight).fill(0x24364a);
+  loadingUI.addChild(background, title, resourceText, barBackground, barFill, progressText);
+  app.stage.addChild(loadingUI);
+
+  const showProgress = (resource, done = false) => {
+    if (done) completed++;
+    const ratio = completed / total;
+    resourceText.text = resource;
+    progressText.text = `${completed} / ${total}  ${Math.round(ratio * 100)}%`;
+    barFill.clear().rect(W * 0.5 - barWidth * 0.5, H * 0.5 + 20, barWidth * ratio, barHeight).fill(0x58c7ff);
+    app.render(app.stage);
+  };
+
+  const fonts = ['Cafe24Ohsquare', 'AnonymousPro', 'KaiseiHarunoUmi'];
+  for (const font of fonts) {
+    showProgress(`Font: ${font}`);
+    await document.fonts.load(`24px ${font}`);
+    showProgress(`Font loaded: ${font}`, true);
+  }
+  await document.fonts.ready;
+
+  showProgress('Textures: 2D assets');
+  await Img.loadTextures();
+  showProgress('Textures loaded: 2D assets', true);
+
+  showProgress('Textures: 3D assets');
+  await Tm.loadTextures();
+  showProgress('Textures loaded: 3D assets', true);
+
+  showProgress('Audio: preparing context');
+  await Am._ensureCtxResumed();
+  showProgress('Audio context ready', true);
+
+  showProgress('Audio: BGM and sound effects');
+  await Am.loadAudios(BGM, SFX);
+  showProgress('Audio loaded: BGM and sound effects', true);
+
+  showProgress('Game data: scenes, languages, stages');
+  await Data.earlyinit();
+  showProgress('Game data loaded', true);
+
+  init();
+  showProgress('Ready', true);
+  app.stage.removeChild(loadingUI);
+  loadingUI.destroy({ children: true });
+}
 
 let threeBgTex = null;
 let threeBgSprite = null;
