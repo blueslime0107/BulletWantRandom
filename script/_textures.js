@@ -193,6 +193,48 @@ const Textures = {
     },
     itemPoint:() => cropImg(Img.assets.bullet, 16, 528, 16, 16),
     itemBombPiece:() => cropImg(Img.assets.bullet, 353, 388, 32, 32),
+    number: function (num) {
+        const list = []
+        const size = 32
+        const style = new TextStyle({
+            fontFamily: 'Cafe24Ohsquare',
+            fontSize: 36,
+            fill: 'rgb(255,255,255)',
+            stroke: {
+                color: 'rgba(0, 0, 0, 1)',
+                width: 5
+            }
+        })
+
+        for(let i=0;i<=9;i++){
+            const container = new Container()
+            const text = new Text({
+                text: String(i),
+                style,
+                anchor: 0.5,
+                position: {x: size * 0.5, y: size * 0.5}
+            })
+            container.addChild(text)
+
+            let bounds = text.getLocalBounds()
+            const maxSize = Math.max(bounds.width, bounds.height)
+            // text.scale.set(scale)
+            text.position.set(
+                size * 0.5 - (bounds.x + bounds.width * 0.5),
+                size * 0.5 - (bounds.y + bounds.height * 0.5)
+            )
+
+            list.push(app.generateTexture({
+                target: container,
+                frame: new PIXI.Rectangle(0, 0, size, size)
+            }))
+        }
+
+        if(num === undefined){
+            return list
+        }
+        return list[num]
+    }
 }
 
 async function LoadTexture() {

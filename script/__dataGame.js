@@ -3,9 +3,9 @@ const enemyArcaive = {
     rush: {
         enemy: EData.stupid,
         health: 3,
-        blue: 10,
-        red: 0,
-        upgradeBlueRed: {blue: 5, red: 0},
+        color: 'blue',
+        value: 10,
+        upgrade: 5,
         spawnRate: 60,
         spell: function (self) {
             let time = [120,80,60,50,40,30,20,15,10][self.level-1]
@@ -26,9 +26,9 @@ const enemyArcaive = {
     smallBullet: {
         enemy: EData.normal,
         health: 5,
-        blue: 20,
-        red: 0,
-        upgradeBlueRed: {blue: 10, red: 0},
+        color: 'red',
+        value: 1,
+        upgrade: 1,
         spawnRate: 120,
         spell: function (self) {
             if(this.whenTime(0)){
@@ -44,10 +44,10 @@ const enemyArcaive = {
     redLazer: {
         enemy: EData.redLazer,
         health: 5,
-        blue: 0,
-        red: 1,
-        upgradeBlueRed: {blue: 1, red: 1},
-        spawnRate: 40,
+        color: 'red',
+        value: 2,
+        upgrade: 2,
+        spawnRate: 240,
         spell: function (self) {
             if(this.whenTime(0)){
                 self.MoveDir(90,1)
@@ -69,9 +69,9 @@ const enemyArcaive = {
     orangeLazer: {
         enemy: EData.orangeLazer,
         health: 20,
-        blue: 5,
-        red: 1,
-        upgradeBlueRed: {blue: 5, red: 1},
+        color: 'red',
+        value: 1,
+        upgrade: 1,
         spawnRate: 120,
         spell: function (self) {
             if(this.whenTime(0)){
@@ -98,9 +98,9 @@ const enemyArcaive = {
     growingBullet: {
         enemy: EData.cyanBigger,
         health: 20,
-        blue: 30,
-        red: 0,
-        upgradeBlueRed: {blue: 60, red: 0},
+        color: 'blue',
+        value: 30,
+        upgrade: 60,
         spawnRate: 80,
         spell: function (self) {
             if(this.whenTime(0)){
@@ -125,9 +125,9 @@ const enemyArcaive = {
     homingBullet: {
         enemy: EData.pinkHoming,
         health: 15,
-        blue: 15,
-        red: 1,
-        upgradeBlueRed: {blue: 5, red: 1},
+        color: 'blue',
+        value: 15,
+        upgrade: 5,
         spawnRate: 74,
         spell: function (self) {
             if(this.whenTime(0)){
@@ -154,9 +154,9 @@ const enemyArcaive = {
     electricRush: {
         enemy: EData.yellowSpread,
         health: 10,
-        blue: 50,
-        red: 0,
-        upgradeBlueRed: {blue: 50, red: 1},
+        color: 'blue',
+        value: 50,
+        upgrade: 50,
         spawnRate: 120,
         spell: function (self) {
             if(this.whenTime(0)){
@@ -174,9 +174,9 @@ const enemyArcaive = {
     electricRush2: {
         enemy: EData.greenSpread,
         health: 70,
-        blue: 50,
-        red: 1,
-        upgradeBlueRed: {blue: 50, red: 2},
+        color: 'blue',
+        value: 50,
+        upgrade: 50,
         spawnRate: 240,
         spell: function (self) {
             if(this.whenTime(0)){
@@ -205,9 +205,9 @@ const enemyArcaive = {
     bomb1: {
         enemy: EData.whiteBomb,
         health: 10,
-        blue: 20,
-        red: 2,
-        upgradeBlueRed: {blue: 100, red: 0},
+        color: 'blue',
+        value: 30,
+        upgrade: 20,
         spawnRate: 128,
         spell: function (self) {
             if(this.whenTime(0)){
@@ -232,9 +232,9 @@ const enemyArcaive = {
     bomb2: {
         enemy: EData.redCross,
         health: 100,
-        blue: 20,
-        red: 2,
-        upgradeBlueRed: {blue: 0, red: 3},
+        color: 'red',
+        value: 2,
+        upgrade: 3,
         spawnRate: 360,
         spell: function (self) {
             if(this.whenTime(0)){
@@ -433,35 +433,42 @@ const enemyItem = {
     coin: {
         imageId: 0,
         price:8,
+        accessorie: true,
         onDeath: function(){
-            sys.coin += 1 * Math.floor(this.maxHealth / 3 * this.level)
+            const value = enemyItem.coin.coinFunc(this.maxHealth, this.level)
+            sys.coin += value
+            gm.effectBox.spawnNumberBubble(this,value,'rgb(252, 255, 48)')
+        },
+        coinFunc: function(health,level){
+            return 1 * Math.floor(health / 3 * level)
         }
     },
     killCircle: {
         imageId: 2,
         price:12,
+        accessorie: true,
         onDeath: function(stack){
-            gm.spawnKillCircle(this.pos,30+20*stack)
+            gm.spawnKillCircle(this.pos,30+20*stack,'enemy')
         }
     },
     levelUp: {
-        temporary: true,
-        negative: true,
         imageId: 3,
+        accessorie: false,
+        negative: true,
         onEquip: function(){ // onEquip의 this는 EnemyData다
             this.setLevel(this.level+1)
-            this.setBlue(this.blue + this.upgradeBlueRed.blue)
-            this.setRed(this.red + this.upgradeBlueRed.red)
+            this.setValue(this.value + this.upgrade)
         }
     },
     counterBullet: {
         imageId: 4,
+        accessorie: false,
         negative: true,
         onDeath: function(stack){
             const enemy = this
             const dir = lookPoint(enemy,gm.player)
             gm.startRoutine("counterBullet",function(self){
-                if(this.whileTime(Math.max(1,6-stack),this.repeat<6*stack)){
+                if(this.whileTime(Math.max(1,6-stack),this.repeat<2*stack)){
                     Am.playSFX("tan1")
                     gm.spawnBullet(BData.kunai,1,enemy).MoveDir(dir+getRandom(-3,3),10)
                 }
@@ -470,28 +477,28 @@ const enemyItem = {
     },
     healthUP: {
         imageId: 5,
-        temporary: true, // 아이템 표시에 나오지 않음
+        accessorie: false,
         negative: true,
         onEquip: function(){
             this.setHealth(this.health*2)
-            this.setBlue(this.blue + this.upgradeBlueRed.blue)
-            this.setRed(this.red + this.upgradeBlueRed.red)
+            this.setValue(this.value + this.upgrade)
         }
     },
     barrier: {
         imageId: 8,
+        accessorie: false,
         negative: true,
         onSpawn: function(stack){
             this.getGodTime(40*stack)
         },
         onEquip: function(){
-            this.setBlue(this.blue + this.upgradeBlueRed.blue)
-            this.setRed(this.red + this.upgradeBlueRed.red)
+            this.setValue(this.value + this.upgrade)
         }
     },
     killEnemy: {
         imageId: 1,
         price: 20,
+        accessorie: false,
         onEquip: function(){
             sys.removeEnemy(this)
         }
@@ -510,6 +517,7 @@ const enemyItem = {
     lucky: {
         imageId: 7,
         price: 100,
+        accessorie: true,
         onDeath: function(stack){
             if(getRandom(0,100) < 10*stack){
                 this.whenDeadScore()
@@ -523,7 +531,7 @@ const enemyItem = {
     healthDown: {
         imageId: 9,
         price: 300,
-        temporary: true,
+        accessorie: false,
         onEquip: function(){
             this.setHealth(this._data.health)
         }
@@ -667,7 +675,7 @@ const playerItem = {
         imageId: 4,
         price: 50,
         onEquip: function(){
-            this.speed += 2
+            this.speed += 1
         }
     },
     healthUp: {
@@ -712,7 +720,7 @@ const playerItem = {
     shopReroll: {
         imageId: 10,
         price: 5000,
-        static: true,
+        accessorie: true,
         onReroll: function(){
             this.shopRerollConsumed = this.shopRerollConsumed || false
             if(!gm.ui.enemyLeft.purchased){return}
@@ -738,7 +746,7 @@ const playerItem = {
     goldEqualsBlue: {
         imageId: 11,
         price: 1000,
-        static: true,
+        accessorie: true,
         onRoundEnd: function(){
             sys.blueScore += sys.coin
         }
