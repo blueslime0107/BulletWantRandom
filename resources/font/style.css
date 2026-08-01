@@ -20,3 +20,100 @@ body, html {
   font-family: 'KaiseiHarunoUmi';
   src: url('KaiseiHarunoUmi-Bold.ttf') format('truetype');
 }
+
+#consoleComputer {
+  box-sizing: border-box;
+  position: fixed;
+  z-index: 10;
+  top: 0;
+  left: 50%;
+  width: min(960px, calc(100% - 24px));
+  padding: 12px;
+  color: #e8f0fb;
+  background: rgba(12, 18, 28, 0.96);
+  border: 1px solid #7da4c8;
+  border-top: 0;
+  border-radius: 0 0 6px 6px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+  font-family: 'AnonymousPro', monospace;
+  transform: translate(-50%, -110%);
+  transition: transform 160ms ease-out;
+}
+
+#consoleComputer.is-open {
+  transform: translate(-50%, 0);
+}
+
+#consoleComputer header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+  font-size: 14px;
+}
+
+#consoleComputer .console-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+#consoleComputer .console-row {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  gap: 6px;
+}
+
+#consoleComputer label {
+  flex: 0 0 auto;
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+#consoleComputer select,
+#consoleComputer input,
+#consoleComputer button {
+  box-sizing: border-box;
+  min-width: 0;
+  height: 28px;
+  border: 1px solid #6f8ca8;
+  border-radius: 3px;
+  color: #eef6ff;
+  background: #1d2a39;
+  font: inherit;
+}
+
+#consoleComputer select,
+#consoleComputer input {
+  flex: 1;
+  padding: 0 6px;
+}
+
+#consoleComputer input {
+  max-width: 88px;
+}
+
+#consoleComputer button {
+  flex: 0 0 auto;
+  padding: 0 10px;
+  cursor: pointer;
+}
+
+#consoleComputer button:hover,
+#consoleComputer button:focus-visible {
+  background: #31506c;
+}
+
+#consoleComputer .console-status {
+  min-height: 16px;
+  margin-top: 8px;
+  color: #9cd0ff;
+  font-size: 12px;
+}
+
+@media (max-width: 640px) {
+  #consoleComputer .console-grid {
+    grid-template-columns: 1fr;
+  }
+}

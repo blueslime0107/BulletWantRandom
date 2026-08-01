@@ -249,6 +249,11 @@ export const GameObjectBase = Base => class extends Base {
     hasRoutine(tag) {
         return this.routes.filter(x => x.tag == tag).length > 0
     }
+    /**
+     * @param {string} tag 루틴 태그
+     * @param {function} routeFunc 루틴 함수, this는 Routine 객체, this.self는 루틴을 실행하는 오브젝트
+     * @returns {this}
+     */
     startRoutine(tag, routeFunc) {
         if(!routeFunc){
             debugger

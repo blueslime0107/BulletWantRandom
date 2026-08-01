@@ -98,7 +98,8 @@ const KeyBind = {
     RIGHT: [KeyCode.ArrowRight],
     SKIP: [KeyCode.Control],
     SLOW: [KeyCode.Shift],
-    SUB: [KeyCode.C]
+    SUB: [KeyCode.C],
+    CONSOLE: [KeyCode.GraveAccent]
 };
 
 const gameTxtsty = {
@@ -308,6 +309,10 @@ const BData = {
     light: { name: 'light', texture:"bulletLight",radius: 8, spinMode:0,z:-2},
 }
 
+/**
+ * @typedef {{radius:number,texture:string,idleFrame?:number[], moveFrame?:number[], fadeFrame?:number[], special?:number[]}} EDataObject
+ * @type {{ [key: string]: EDataObject }}
+ */
 const EData = {
     // butterfly1: { radius: 16, texture: 'enemyButterfly1', idleFrame:[0,1], moveFrame:[2,3]},
     // butterfly2: { radius: 16, texture: 'enemyButterfly2', idleFrame:[0,1], moveFrame:[2,3]},

@@ -111,10 +111,13 @@ const PlayerThings = {
 }
 
 const Items = {
-    itemEnemy: () => cropImg(Img.assets.item, 0, 0, 64, 64, 10, 1),
+    itemEnemy: () => cropImg(Img.assets.item, 0, 0, 64, 64, 10, 2),
     itemPlayer: () => cropImg(Img.assets.item, 0, 320, 64, 64, 10, 2),
     itemNo: () => cropImg(Img.assets.item, 576, 576, 64, 64),
     itemDoubleRed: () => cropImg(Img.assets.bullet, 32, 528, 16, 16),
+    itemBasePassive: () => cropImg(Img.assets.item, 0, 224, 96, 96),
+    itemBaseAccessorie: () => cropImg(Img.assets.item, 96, 224, 96, 96),
+    itemBaseNegativePassive: () => cropImg(Img.assets.item, 192, 224, 96, 96),
 }
 
 const UI = {

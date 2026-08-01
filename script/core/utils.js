@@ -1,11 +1,15 @@
 
+/**
+ * x, y 값을 가지는 좌표 형식
+ * @typedef {{x: number, y: number}} Pos
+ */
 
 /**
  * 두 점 사이에서 t(0~1) 위치의 좌표를 반환한다.
- * @param {{x:number,y:number}} start 시작점
- * @param {{x:number,y:number}} end 끝점
+ * @param {Pos} start 시작점
+ * @param {Pos} end 끝점
  * @param {number} t 위치 (0=start, 1=end)
- * @returns {{x:number,y:number}}
+ * @returns {Pos}
  */
 function lerpPos(start, end, t) {
   return pos(start.x + (end.x - start.x) * t, start.y + (end.y - start.y) * t);
@@ -15,6 +19,10 @@ function lerpPos(start, end, t) {
 /**
  * 현재 각도와, 목표 각도, 최대변경각도를 받아서
  * 호밍 효과를 낼 수 있도록 각도를 주는 함수
+ * @param {number} currentAngle 현재 각도
+ * @param {number} targetAngle 목표 각도
+ * @param {number} maxChangeAngle 최대 변경 각도
+ * @returns {number} 다음 각도
  */
 function getHomingAngle(currentAngle, targetAngle, maxChangeAngle) {
   const diff = normalizeAngle(targetAngle - currentAngle)
@@ -27,6 +35,10 @@ function getHomingAngle(currentAngle, targetAngle, maxChangeAngle) {
 /**
  * 보더 끝 margin(px) 안에 있으면
  * 해당 방향 각도는 나오지 않게 랜덤 각도 생성
+ * @param {Pos} pos 현재 좌표
+ * @param {{top:number,bottom:number,left:number,right:number}} border 보더 좌표
+ * @param {number} [margin=50] 보더 끝 margin(px)
+ * @returns {number} 0~360도 랜덤 각도
  */
 function getBorderSafeAngle(pos, border, margin = 50) {
 
@@ -34,6 +46,11 @@ function getBorderSafeAngle(pos, border, margin = 50) {
   let ranges = [[0, 360]];
 
   // 각도 구간 제거
+  /**
+   * 
+   * @param {number} min 
+   * @param {number} max 
+   */
   const cut = (min, max) => {
     const next = [];
     for (const [a, b] of ranges) {
@@ -85,7 +102,8 @@ function getBorderSafeAngle(pos, border, margin = 50) {
  *
  * @param {number} n 생성할 값의 개수
  * @param {number} [gap=1] 값 사이의 간격
- * @returns {number[]} 중앙 기준 오프셋 배열
+ * @param {number} [index] 특정 인덱스의 오프셋만 반환 (0~n-1)
+ * @returns {number[] | number} 중앙 기준 오프셋 배열
  *
  * @example
  * centerSpread(1) // [0]
@@ -93,9 +111,9 @@ function getBorderSafeAngle(pos, border, margin = 50) {
  * centerSpread(3) // [-1, 0, 1]
  * centerSpread(5, 2) // [-4, -2, 0, 2, 4]
  */
-function centerSpread(n, gap = 1, index){
+function centerSpread(n, gap = 1, index) {
   const mid = (n - 1) / 2
-  if(index !== undefined){
+  if (index !== undefined) {
     return (index - mid) * gap
   }
   return Array.from({ length: n }, (_, i) => (i - mid) * gap)
@@ -105,13 +123,13 @@ function centerSpread(n, gap = 1, index){
  * @param {number} index 현재 인덱스
  * @param {number} length 총 개수
  * @returns {-1 | 0 | 1} 좌/중앙/우
- */ 
+ */
 function getSide(index, length) {
-    const center = (length - 1) / 2;
+  const center = (length - 1) / 2;
 
-    if (index < center) return -1;
-    if (index > center) return 1;
-    return 0;
+  if (index < center) return -1;
+  if (index > center) return 1;
+  return 0;
 }
 /**
  * 단일 값 또는 배열을 받아
@@ -138,21 +156,39 @@ function getFormattedDate(date = new Date()) {
     String(date.getMonth() + 1).padStart(2, '0') + '/' +
     String(date.getDate()).padStart(2, '0');
 }
-/** rgba(r,g,b,a) 형식을 {color:0xRRGGBB, alpha:a} 형식으로 바꾼다 */
+/** 
+ * rgba(r,g,b,a) 형식을 {color:0xRRGGBB, alpha:a} 형식으로 바꾼다 
+ * @param {string | number} rgba "rgba(r,g,b,a)" 문자열 또는 0xRRGGBB 숫자
+ * @returns {{color: number, alpha: number}}
+ */
 function rgbaSplit(rgba) {
-  if(typeof rgba === "number"){
+  if (typeof rgba === "number") {
     return {
-        color: rgba,
-        alpha: 1
-    }
-  }
-    const [r, g, b, a = 1] =
-        rgba.match(/[\d.]+/g).map(Number);
-
-    return {
-        color: (r << 16) | (g << 8) | b,
-        alpha: a
+      color: rgba,
+      alpha: 1
     };
+  }
+
+  if (typeof rgba !== "string") {
+    return {
+      color: 0,
+      alpha: 1
+    };
+  }
+
+  const match = rgba.match(/[\d.]+/g);
+  if (!match) {
+    return {
+      color: 0,
+      alpha: 1
+    };
+  }
+
+  const [r, g, b, a = 1] = match.map(Number);
+  return {
+    color: (r << 16) | (g << 8) | b,
+    alpha: a
+  };
 }
 
 
@@ -161,16 +197,16 @@ function rgbaSplit(rgba) {
  * @param {number} num 변환할 각도
  * @returns {number} 라디안으로 변환된 값
  */
-function radian(num){ 
-  return num * Math.PI/180
+function radian(num) {
+  return num * Math.PI / 180
 }
 /**
  * 라디안을 각도로 바꾼다
  * @param {number} num 변환할 라디안
  * @returns {number} 각도로 변환된 값
  */
-function degree(num){ 
-  return num * 180/Math.PI
+function degree(num) {
+  return num * 180 / Math.PI
 }
 
 
@@ -203,9 +239,9 @@ function getLastNumber(str) {
 
 /**
  * A→B 방향의 단위 벡터를 계산한다.
- * @param {{x:number,y:number}} A 시작점
- * @param {{x:number,y:number}} B 도착점
- * @returns {{x:number,y:number}} 정규화된 방향 벡터
+ * @param {Pos} A 시작점
+ * @param {Pos} B 도착점
+ * @returns {Pos} 정규화된 방향 벡터
  */
 function getNormalizedDirection(A, B) {
   const dx = B.x - A.x;
@@ -264,8 +300,8 @@ function getRandomF(min, max) {
  * @example
  * getRandomList(['apple', 'banana', 'cherry']) // 예: 'banana'
 */
-function getRandomList(list){
-  return list[getRandom(0,list.length)]
+function getRandomList(list) {
+  return list[getRandom(0, list.length)]
 }
 /**
  * min 이상 max 미만의 숫자를 모두 포함하는 배열을 만들어 랜덤 셔플한다.
@@ -375,8 +411,8 @@ function isCarry(a, b) {
 
 /**
  * 두 점으로부터 각도를 도(degree) 단위로 계산한다.
- * @param {{x:number,y:number}} owner
- * @param {{x:number,y:number}} target
+ * @param {Pos} owner
+ * @param {Pos} target
  * @returns {number} 0~360도
  */
 function lookPoint(owner, target) {
@@ -385,60 +421,87 @@ function lookPoint(owner, target) {
   return (Math.atan2(dy, dx) * 180 / Math.PI + 360) % 360;
 }
 
+
+
 /**
  * x, y 값을 가지는 오브젝트를 생성한다
  * @param {number} x
  * @param {number} y
- * @returns {{x:number,y:number}} 0~360도
+ * @returns {Pos} 0~360도
  */
 function pos(x, y) {
   return { x, y }
 }
 
+/**
+ * 원점 좌표 객체
+ * @type {Pos}
+ */
 const posZero = { x: 0, y: 0 }
 
+/**
+ * 
+ * @param {Pos} pos1 
+ * @param {Pos} pos2 
+ * @returns {boolean} 두 좌표가 같은지 여부
+ */
 function posCompare(pos1, pos2) {
   return pos1.x === pos2.x && pos1.y === pos2.y;
 }
 
 /**
  * 두 좌표를 더한 새로운 좌표 객체를 반환합니다.
- * * @param {{x: number, y: number}} a - x, y 속성을 가진 기본 좌표 객체
- * @param {{x: number, y: number} | number[]} b - x, y 객체 또는 [x, y] 형태의 숫자 배열
- * @returns {Object} x, y 합계가 계산된 pos 객체
+ * @param {Pos} a - x, y 속성을 가진 기본 좌표 객체
+ * @param {Pos | number[]} b - x, y 객체 또는 [x, y] 형태의 숫자 배열
+ * @returns {Pos} x, y 합계가 계산된 pos 객체
  */
 function posAdd(a, b) {
   // b가 배열 [x, y] 형태인 경우
   if (Array.isArray(b)) {
     return pos(a.x + b[0], a.y + b[1]);
   }
-  
+
   // b가 오브젝트 {x, y} 형태인 경우
   return pos(a.x + b.x, a.y + b.y);
 }
 
+/**
+ * 
+ * @param {Pos} p1 
+ * @param {Pos} p2 
+ * @returns {number} 두 좌표 간의 거리
+ */
 function getDist(p1, p2) {
   return Math.hypot(p1.x - p2.x, p1.y - p2.y);
 }
 
+/**
+ * 
+ * @param {number} start 시작 값
+ * @param {number} end 종료 값
+ * @param {number} frame 현재 프레임
+ * @param {number} time 총 프레임
+ * @param {function} ease easing 함수
+ * @returns {number} 보간된 값
+ */
 function frameMove(start, end, frame, time, ease = Easing.linear) {
-    // 경계 처리
-    if (frame <= 0) return start;
-    if (frame >= time) return end;
+  // 경계 처리
+  if (frame <= 0) return start;
+  if (frame >= time) return end;
 
-    // 0~1 사이의 보간 단계
-    const t = frame / time;
+  // 0~1 사이의 보간 단계
+  const t = frame / time;
 
-    // easing 적용한 t
-    const k = ease(t);
+  // easing 적용한 t
+  const k = ease(t);
 
-    // 보간된 값(lerp)
-    return start + (end - start) * k;
+  // 보간된 값(lerp)
+  return start + (end - start) * k;
 }
 
 /**
  * 기준점에서 angle(도) 방향으로 radius만큼 이동한 새로운 좌표를 반환한다.
- * @param {{x:number,y:number}} obj1 중심점
+ * @param {Pos} obj1 중심점
  * @param {number} angle degree 단위
  * @param {number} radius 이동 거리
  * @returns {Pos}
@@ -461,7 +524,7 @@ function goAngle(obj1, angle, radius) {
 function distanceToCircle(x, y, angleDeg) {
   const cx = 180;
   const cy = 180;
-  const r = getDist(pos(0, 0), pl)
+  const r = getDist(pos(0, 0), pos(cx, cy));
 
   const angleRad = angleDeg * Math.PI / 180;
   const dx = Math.cos(angleRad);
@@ -490,7 +553,7 @@ function distanceToCircle(x, y, angleDeg) {
 
 /**
  * 두께를 가진 선분과 원의 충돌 여부를 판단한다.
- * @param {{x:number,y:number}} A 시작점
+ * @param {Pos} A 시작점
  * @param {number} angleDeg 각도(deg)
  * @param {number} length 선 길이
  * @param {number} thickness 선 두께
@@ -522,7 +585,16 @@ function collideLineCircle(A, angleDeg, length, thickness, circle) {
   return dist <= circle.radius + half;
 }
 
-function collideCircle(a,b,offset=0){
+/**
+ * 두 원의 충돌 여부를 판단한다.
+ * @param {{x:number,y:number,radius:number}} a 첫 번째 원
+ * @param {{x:number,y:number,radius:number}} b 두 번째 원
+ * @param {number} [offset=0] 충돌 허용 오프셋
+ *  
+ * @returns {boolean} 충돌 여부
+ * 
+ */
+function collideCircle(a, b, offset = 0) {
   const dx = a.x - b.x;
   const dy = a.y - b.y;
   const rr = a.radius + b.radius + offset;
@@ -547,160 +619,167 @@ Object.defineProperty(Array.prototype, "clear", {
   }
 });
 
-const NumToStr = ["ZERO","ONE","TWO","THREE","FOUR","FIVE","SIX","SEVEN","EIGHT","NINE","TEN"]
+const NumToStr = ["ZERO", "ONE", "TWO", "THREE", "FOUR", "FIVE", "SIX", "SEVEN", "EIGHT", "NINE", "TEN"]
 
 const Easing = {
 
-    /* === Linear === */
-    /**
-     * 선형 보간
-     * @param {number} t - 0~1
-     * @returns {number}
-     */
-    linear: t => t,
+  /* === Linear === */
+  /**
+   * 선형 보간
+   * @param {number} t - 0~1
+   * @returns {number}
+   */
+  linear: t => t,
 
-    /* === Quad === */
-    /** @param {number} t @returns {number} */
-    easeInQuad: t => t * t,
-    /** @param {number} t @returns {number} */
-    easeOutQuad: t => t * (2 - t),
-    /** @param {number} t @returns {number} */
-    easeInOutQuad: t => t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2,
+  /* === Quad === */
+  /** @param {number} t @returns {number} */
+  easeInQuad: t => t * t,
+  /** @param {number} t @returns {number} */
+  easeOutQuad: t => t * (2 - t),
+  /** @param {number} t @returns {number} */
+  easeInOutQuad: t => t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2,
 
-    /* === Cubic === */
-    /** @param {number} t @returns {number} */
-    easeInCubic: t => t * t * t,
-    /** @param {number} t @returns {number} */
-    easeOutCubic: t => 1 - Math.pow(1 - t, 3),
-    /** @param {number} t @returns {number} */
-    easeInOutCubic: t => t < 0.5 ?
-        4 * t * t * t :
-        1 - Math.pow(-2 * t + 2, 3) / 2,
+  /* === Cubic === */
+  /** @param {number} t @returns {number} */
+  easeInCubic: t => t * t * t,
+  /** @param {number} t @returns {number} */
+  easeOutCubic: t => 1 - Math.pow(1 - t, 3),
+  /** @param {number} t @returns {number} */
+  easeInOutCubic: t => t < 0.5 ?
+    4 * t * t * t :
+    1 - Math.pow(-2 * t + 2, 3) / 2,
 
-    /* === Quart === */
-    /** @param {number} t @returns {number} */
-    easeInQuart: t => t * t * t * t,
-    /** @param {number} t @returns {number} */
-    easeOutQuart: t => 1 - Math.pow(1 - t, 4),
-    /** @param {number} t @returns {number} */
-    easeInOutQuart: t => t < 0.5 ?
-        8 * t * t * t * t :
-        1 - Math.pow(-2 * t + 2, 4) / 2,
+  /* === Quart === */
+  /** @param {number} t @returns {number} */
+  easeInQuart: t => t * t * t * t,
+  /** @param {number} t @returns {number} */
+  easeOutQuart: t => 1 - Math.pow(1 - t, 4),
+  /** @param {number} t @returns {number} */
+  easeInOutQuart: t => t < 0.5 ?
+    8 * t * t * t * t :
+    1 - Math.pow(-2 * t + 2, 4) / 2,
 
-    /* === Quint === */
-    /** @param {number} t @returns {number} */
-    easeInQuint: t => t * t * t * t * t,
-    /** @param {number} t @returns {number} */
-    easeOutQuint: t => 1 - Math.pow(1 - t, 5),
-    /** @param {number} t @returns {number} */
-    easeInOutQuint: t => t < 0.5 ?
-        16 * t * t * t * t * t :
-        1 - Math.pow(-2 * t + 2, 5) / 2,
+  /* === Quint === */
+  /** @param {number} t @returns {number} */
+  easeInQuint: t => t * t * t * t * t,
+  /** @param {number} t @returns {number} */
+  easeOutQuint: t => 1 - Math.pow(1 - t, 5),
+  /** @param {number} t @returns {number} */
+  easeInOutQuint: t => t < 0.5 ?
+    16 * t * t * t * t * t :
+    1 - Math.pow(-2 * t + 2, 5) / 2,
 
-    /* === Sine === */
-    /** @param {number} t @returns {number} */
-    easeInSine: t => 1 - Math.cos((t * Math.PI) / 2),
-    /** @param {number} t @returns {number} */
-    easeOutSine: t => Math.sin((t * Math.PI) / 2),
-    /** @param {number} t @returns {number} */
-    easeInOutSine: t => -(Math.cos(Math.PI * t) - 1) / 2,
+  /* === Sine === */
+  /** @param {number} t @returns {number} */
+  easeInSine: t => 1 - Math.cos((t * Math.PI) / 2),
+  /** @param {number} t @returns {number} */
+  easeOutSine: t => Math.sin((t * Math.PI) / 2),
+  /** @param {number} t @returns {number} */
+  easeInOutSine: t => -(Math.cos(Math.PI * t) - 1) / 2,
 
-    /* === Expo === */
-    /** @param {number} t @returns {number} */
-    easeInExpo: t => (t === 0 ? 0 : Math.pow(2, 10 * t - 10)),
-    /** @param {number} t @returns {number} */
-    easeOutExpo: t => (t === 1 ? 1 : 1 - Math.pow(2, -10 * t)),
-    /** @param {number} t @returns {number} */
-    easeInOutExpo: t =>
-        t === 0 ? 0 :
-            t === 1 ? 1 :
-                t < 0.5 ?
-                    Math.pow(2, 20 * t - 10) / 2 :
-                    (2 - Math.pow(2, -20 * t + 10)) / 2,
-
-    /* === Circ === */
-    /** @param {number} t @returns {number} */
-    easeInCirc: t => 1 - Math.sqrt(1 - t * t),
-    /** @param {number} t @returns {number} */
-    easeOutCirc: t => Math.sqrt(1 - (t - 1) * (t - 1)),
-    /** @param {number} t @returns {number} */
-    easeInOutCirc: t => t < 0.5 ?
-        (1 - Math.sqrt(1 - 4 * t * t)) / 2 :
-        (Math.sqrt(1 - Math.pow(-2 * t + 2, 2)) + 1) / 2,
-
-    /* === Back === */
-    /** @param {number} t @returns {number} */
-    easeInBack: t => {
-        const c1 = 1.70158;
-        return c1 * t * t * t - c1 * t * t;
-    },
-    /** @param {number} t @returns {number} */
-    easeOutBack: t => {
-        const c1 = 1.70158;
-        const c3 = c1 + 1;
-        return 1 + c3 * Math.pow(t - 1, 3) + c1 * Math.pow(t - 1, 2);
-    },
-    /** @param {number} t @returns {number} */
-    easeInOutBack: t => {
-        const c1 = 1.70158;
-        const c2 = c1 * 1.525;
-        return t < 0.5 ?
-            (Math.pow(2 * t, 2) * ((2 * t) * (c2 + 1) - c2)) / 2 :
-            (Math.pow(2 * t - 2, 2) * ((2 * t - 2) * (c2 + 1) + c2) + 2) / 2;
-    },
-
-    /* === Elastic === */
-    /** @param {number} t @returns {number} */
-    easeInElastic: t => {
-        const c4 = (2 * Math.PI) / 3;
-        return t === 0 ? 0 :
-            t === 1 ? 1 :
-                -Math.pow(2, 10 * t - 10) *
-                Math.sin((t * 10 - 10.75) * c4);
-    },
-    /** @param {number} t @returns {number} */
-    easeOutElastic: t => {
-        const c4 = (2 * Math.PI) / 3;
-        return t === 0 ? 0 :
-            t === 1 ? 1 :
-                Math.pow(2, -10 * t) *
-                Math.sin((t * 10 - 0.75) * c4) + 1;
-    },
-    /** @param {number} t @returns {number} */
-    easeInOutElastic: t => {
-        const c5 = (2 * Math.PI) / 4.5;
-        return t === 0 ? 0 :
-            t === 1 ? 1 :
-                t < 0.5 ?
-                    -(Math.pow(2, 20 * t - 10) *
-                        Math.sin((20 * t - 11.125) * c5)) / 2 :
-                    (Math.pow(2, -20 * t + 10) *
-                        Math.sin((20 * t - 11.125) * c5)) / 2 + 1;
-    },
-
-    /* === Bounce === */
-    /** @param {number} t @returns {number} */
-    easeOutBounce: t => {
-        const n1 = 7.5625;
-        const d1 = 2.75;
-        if (t < 1 / d1) return n1 * t * t;
-        else if (t < 2 / d1) return n1 * (t -= 1.5 / d1) * t + 0.75;
-        else if (t < 2.5 / d1) return n1 * (t -= 2.25 / d1) * t + 0.9375;
-        else return n1 * (t -= 2.625 / d1) * t + 0.984375;
-    },
-
-    /** @param {number} t @returns {number} */
-    easeInBounce: t => 1 - Easing.easeOutBounce(1 - t),
-
-    /** @param {number} t @returns {number} */
-    easeInOutBounce: t =>
+  /* === Expo === */
+  /** @param {number} t @returns {number} */
+  easeInExpo: t => (t === 0 ? 0 : Math.pow(2, 10 * t - 10)),
+  /** @param {number} t @returns {number} */
+  easeOutExpo: t => (t === 1 ? 1 : 1 - Math.pow(2, -10 * t)),
+  /** @param {number} t @returns {number} */
+  easeInOutExpo: t =>
+    t === 0 ? 0 :
+      t === 1 ? 1 :
         t < 0.5 ?
-            (1 - Easing.easeOutBounce(1 - 2 * t)) / 2 :
-            (1 + Easing.easeOutBounce(2 * t - 1)) / 2,
+          Math.pow(2, 20 * t - 10) / 2 :
+          (2 - Math.pow(2, -20 * t + 10)) / 2,
+
+  /* === Circ === */
+  /** @param {number} t @returns {number} */
+  easeInCirc: t => 1 - Math.sqrt(1 - t * t),
+  /** @param {number} t @returns {number} */
+  easeOutCirc: t => Math.sqrt(1 - (t - 1) * (t - 1)),
+  /** @param {number} t @returns {number} */
+  easeInOutCirc: t => t < 0.5 ?
+    (1 - Math.sqrt(1 - 4 * t * t)) / 2 :
+    (Math.sqrt(1 - Math.pow(-2 * t + 2, 2)) + 1) / 2,
+
+  /* === Back === */
+  /** @param {number} t @returns {number} */
+  easeInBack: t => {
+    const c1 = 1.70158;
+    return c1 * t * t * t - c1 * t * t;
+  },
+  /** @param {number} t @returns {number} */
+  easeOutBack: t => {
+    const c1 = 1.70158;
+    const c3 = c1 + 1;
+    return 1 + c3 * Math.pow(t - 1, 3) + c1 * Math.pow(t - 1, 2);
+  },
+  /** @param {number} t @returns {number} */
+  easeInOutBack: t => {
+    const c1 = 1.70158;
+    const c2 = c1 * 1.525;
+    return t < 0.5 ?
+      (Math.pow(2 * t, 2) * ((2 * t) * (c2 + 1) - c2)) / 2 :
+      (Math.pow(2 * t - 2, 2) * ((2 * t - 2) * (c2 + 1) + c2) + 2) / 2;
+  },
+
+  /* === Elastic === */
+  /** @param {number} t @returns {number} */
+  easeInElastic: t => {
+    const c4 = (2 * Math.PI) / 3;
+    return t === 0 ? 0 :
+      t === 1 ? 1 :
+        -Math.pow(2, 10 * t - 10) *
+        Math.sin((t * 10 - 10.75) * c4);
+  },
+  /** @param {number} t @returns {number} */
+  easeOutElastic: t => {
+    const c4 = (2 * Math.PI) / 3;
+    return t === 0 ? 0 :
+      t === 1 ? 1 :
+        Math.pow(2, -10 * t) *
+        Math.sin((t * 10 - 0.75) * c4) + 1;
+  },
+  /** @param {number} t @returns {number} */
+  easeInOutElastic: t => {
+    const c5 = (2 * Math.PI) / 4.5;
+    return t === 0 ? 0 :
+      t === 1 ? 1 :
+        t < 0.5 ?
+          -(Math.pow(2, 20 * t - 10) *
+            Math.sin((20 * t - 11.125) * c5)) / 2 :
+          (Math.pow(2, -20 * t + 10) *
+            Math.sin((20 * t - 11.125) * c5)) / 2 + 1;
+  },
+
+  /* === Bounce === */
+  /** @param {number} t @returns {number} */
+  easeOutBounce: t => {
+    const n1 = 7.5625;
+    const d1 = 2.75;
+    if (t < 1 / d1) return n1 * t * t;
+    else if (t < 2 / d1) return n1 * (t -= 1.5 / d1) * t + 0.75;
+    else if (t < 2.5 / d1) return n1 * (t -= 2.25 / d1) * t + 0.9375;
+    else return n1 * (t -= 2.625 / d1) * t + 0.984375;
+  },
+
+  /** @param {number} t @returns {number} */
+  easeInBounce: t => 1 - Easing.easeOutBounce(1 - t),
+
+  /** @param {number} t @returns {number} */
+  easeInOutBounce: t =>
+    t < 0.5 ?
+      (1 - Easing.easeOutBounce(1 - 2 * t)) / 2 :
+      (1 + Easing.easeOutBounce(2 * t - 1)) / 2,
 };
 
 const Graph = {
-  sin: function(n, min, max, length){
+  /**
+   * @param {number} n
+   * @param {number} min
+   * @param {number} max
+   * @param {number} length
+   * @returns {number}
+   */
+  sin: function (n, min, max, length) {
     const amplitude = (max - min) / 2;
     const mid = (max + min) / 2;
     return mid + amplitude * Math.sin((n / length) * 2 * Math.PI);

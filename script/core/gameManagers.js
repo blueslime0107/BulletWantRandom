@@ -29,12 +29,14 @@ export class InputManager {
     // ─────────────────────────────────────────
     // 키보드
     this._downHandler = (e) => {
+      if (e.target.closest?.('#consoleComputer') && e.keyCode !== 192) return;
       if (!e.repeat && !this.down.has(e.keyCode)) {
         this.down.add(e.keyCode);
         this.pressed.add(e.keyCode);
       }
     };
     this._upHandler = (e) => {
+      if (e.target.closest?.('#consoleComputer') && e.keyCode !== 192) return;
       if (this.down.has(e.keyCode)) {
         this.down.delete(e.keyCode);
         this.released.add(e.keyCode);

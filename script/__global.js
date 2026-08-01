@@ -1,8 +1,10 @@
 
-/**@type {import("./sceneMainGame").GameManager}*/
+// @ts-check
+
+/** @type {import("./sceneMainGame.js").GameManager} */
 var gm
 
-/**@type {import("./sceneMainGame").SystemManager}*/
+/** @type {import("./sceneMainGame.js").SystemManager} */
 var sys
 
 var GS = gameData.gameArea.width; // Game Size

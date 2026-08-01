@@ -3,7 +3,7 @@
     // "checkJs": true,
     // "allowJs": true,
     "lib": ["DOM", "ES2020"],
-    "moduleResolution": "node"
+    "ignoreDeprecations": "6.0"
   },
   "include": ["./**/*.js", "./**/*.d.ts"]
 }

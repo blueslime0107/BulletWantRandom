@@ -1,4 +1,7 @@
-
+/**
+ * @typedef {{enemy: EDataObject, health: number, color: string, value: number, upgrade: number, spawnRate: number}} EnemyDataBase
+ */
+/** @type {Record<string, EnemyDataBase>} */
 const enemyArcaive = {
     rush: {
         enemy: EData.stupid,
@@ -10,7 +13,6 @@ const enemyArcaive = {
         spell: function (self) {
             let time = [120,80,60,50,40,30,20,15,10][self.level-1]
             if(this.whenTime(0)){
-                self.health = 3 * self.level
                 self.MoveDir(lookPoint(self,gm.player),4)
             }
             if(self.level > 1){
@@ -428,19 +430,20 @@ const bossArcaive = [
 
 ]
 
-
+/** @typedef {{imageId:number, price: number, accessorie: boolean, negative?: boolean, onDeath?: Function, onEquip?: Function, onSpawn?: Function}} ItemObject */
+/** @type {Object.<string, ItemObject>} */
 const enemyItem = {
     coin: {
         imageId: 0,
         price:8,
         accessorie: true,
-        onDeath: function(){
-            const value = enemyItem.coin.coinFunc(this.maxHealth, this.level)
+        onDeath: function(stack){
+            const value = enemyItem.coin.coinFunc(this.maxHealth, this.level, stack)
             sys.coin += value
             gm.effectBox.spawnNumberBubble(this,value,'rgb(252, 255, 48)')
         },
-        coinFunc: function(health,level){
-            return 1 * Math.floor(health / 3 * level)
+        coinFunc: function(health,level,stack){
+            return stack * Math.floor(health / 3 * level)
         }
     },
     killCircle: {
@@ -503,17 +506,17 @@ const enemyItem = {
             sys.removeEnemy(this)
         }
     },
-    killCircleBarrier: {
-        imageId: 6,
-        price: 5,
-        negative: true,
-        static: true, // 하나만 획득 가능
-        onDamage: function(stack,count,attacker){
-            if(attacker == 'killCircle'){
-                this.health += count
-            }
-        }
-    },
+    // killCircleBarrier: {
+    //     imageId: 6,
+    //     price: 5,
+    //     negative: true,
+    //     static: true, // 하나만 획득 가능
+    //     onDamage: function(stack,count,attacker){
+    //         if(attacker == 'killCircle'){
+    //             this.health += count
+    //         }
+    //     }
+    // },
     lucky: {
         imageId: 7,
         price: 100,
@@ -533,11 +536,30 @@ const enemyItem = {
         price: 300,
         accessorie: false,
         onEquip: function(){
-            this.setHealth(this._data.health)
+            this.setHealth(this.data.health)
+        }
+    },
+    timer: {
+        imageId: 10,
+        price: 20,
+        accessorie: false,
+        negative: true,
+        onEquip: function(){
+            this.setSpawnRate(Math.ceil(this.spawnRate * 0.7))
+        }
+    },
+    accessoriePower: {
+        imageId: 11,
+        price: 20,
+        accessorie: false,
+        onEquip: function(){
+            if(this.accessorie){
+                this.accessorie.stack = this.items.find(i => i.data == enemyItem.accessoriePower)?.stack+1 || 1
+            }
         }
     }
 }
-
+/** @type {{ [key: string]: ItemObject }} */
 const playerItem = {
     shotUp: {
         imageId: 0,
@@ -749,6 +771,17 @@ const playerItem = {
         accessorie: true,
         onRoundEnd: function(){
             sys.blueScore += sys.coin
+        }
+    },
+    autoBomb: {
+        imageId: 12,
+        price: 1500,
+        accessorie: true,
+        onDeath: function(stack){
+            if(this.ableToTriggerBomb()){
+                this.deathCancel = true
+                this.triggerBomb()
+            }
         }
     }
 }

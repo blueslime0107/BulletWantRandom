@@ -20,16 +20,16 @@ var Tm;
 var Am;
 
 /**@type {import("./gameManagers").SceneManager}*/
-var Scene
-
-/**@type {typeof import("./gameManagers").DataManagerBase}*/
-var DataManagerBase
+var Scene;
 
 /** @type {typeof PIXI.Sprite} */
-var Sprite 
+var Sprite;
 
 /** @type {typeof PIXI.Text} */
-var Text 
+var Text
+
+/** @type {typeof PIXI.TextStyle} */
+var TextStyle
 
 /** @type {typeof PIXI.Container} */
 var Container 
@@ -73,12 +73,6 @@ var GagueBar
 
 /** @type {import("./libs/pixi.js").WebGLRenderer} */
 var app
-
-/**@type {typeof import("../_gameData").gameData.resolution[0]}*/
-var SW
-
-/**@type {typeof import("../_gameData").gameData.resolution[1]}*/
-var SH
 
 /**@type {typeof import("./_main").__three}*/
 var three

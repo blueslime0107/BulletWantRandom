@@ -1,6 +1,13 @@
 
+/** @typedef {{data: ItemObject, stack: number, index?: number}} ItemData */
+
 export class StageRoutine extends Routine {
 
+    /**
+     * @param {Pos} pos
+     * @param {number} dir
+     * @param {number} speed
+     */
     bullet(pos, dir, speed) {
         return gm.spawnBullet(pos, dir, speed)
     }
@@ -119,6 +126,7 @@ class Enemy extends ShotObject {
         this.color = 'blue'
         this.value = 0
         this.level = 1
+        /** @type {ItemData[]} */
         this.items = []
         this.data = null
 
@@ -126,6 +134,7 @@ class Enemy extends ShotObject {
         this.rushMode = false
     }
 
+    /** @param {EDataObject} enemy */
     applyEnemyData(enemy){
         const data = enemy
         this.radius = data.radius
@@ -329,7 +338,8 @@ class Boss extends Enemy {
         this._specialMoving = false
         this.baseSprite.scale.set(2)
     }
-
+    
+    /** @param {EDataObject} enemy */
     applyEnemyData(enemy){
         super.applyEnemyData(enemy)
         this.radius *= 1.5
@@ -1029,6 +1039,7 @@ class Player extends GameObject {
         this.addChild(this.hitCircle)
 
         this.options = {}
+        /** @type {ItemData[]} */
         this.items = []
         this.shots = new GameObjectGroup()
 
@@ -1054,6 +1065,8 @@ class Player extends GameObject {
         this.reset()
 
         this.mobile = isMobileDevice()
+
+        this.deathCancel = false 
     }
 
     reset(){
@@ -1192,6 +1205,14 @@ class Player extends GameObject {
 
     damage(){
         if(this.godMode){return}
+        this.triggerItem('onDeath')
+        if(this.deathCancel){
+            Am.playSFX("pDead")
+            this.deathCancel = false
+            this.getGodTime(120)
+            this.godMode = true
+            return
+        }
         gm.killAll(['bullet','enemy'])
         this.godMode = true
         this.shotAble = false
@@ -1263,12 +1284,22 @@ class Player extends GameObject {
     }
 
     updateBomb(){
-        if(this.pressedBomb() && this.bombPower >= 100){
-            this.spawnBomb()
-            this.setBombPower(0)
-            Am.playSFX('slash')
+        if(this.pressedBomb()){
+            if(this.ableToTriggerBomb()){
+                this.triggerBomb()
+            }
         }
     }
+
+    ableToTriggerBomb(){
+        return this.bombPower >= 100
+    }
+    triggerBomb(){
+        this.spawnBomb()
+        this.setBombPower(0)
+        Am.playSFX('slash')
+    }
+
 
     spawnBomb(){
         const sprite = new GameObject({
@@ -1427,6 +1458,12 @@ class Player extends GameObject {
         if(existingItem){
             existingItem.stack += 1
         } else {
+            if(item.accessorie && index < 0){
+                index = 0
+                while(this.items.some(entry => entry.index === index)){
+                    index++
+                }
+            }
             this.items.push({
                 stack: 1,
                 data:item,
@@ -1435,6 +1472,13 @@ class Player extends GameObject {
         }
         if(item.onEquip){
             item.onEquip.call(this)
+        }
+        if(item.accessorie){
+            const inventoryItem = this.items.find(entry => entry.data === item)
+            const inventoryBlock = gm.ui.playerInventoryBlocks[inventoryItem.index]
+            if(inventoryBlock){
+                inventoryBlock.sprite.texture = Img.texture.itemPlayer[item.imageId]
+            }
         }
         gm.ui.updatePlayerItems()
     }
@@ -1888,8 +1932,11 @@ class GameUIEnemyBlock extends GameObject {
         this.addChild(this.outLine, this.inBase, this.enemyImage, this.levelText, this.valueText, this.coinText, this.spawnRate, this.itemUI, this.accessorieUI, this.healthText, this.spawnRateText)
 
         this.frame = 0
+        /** @type {EnemyData} */
+        this.data = null
     }
 
+    /** @param {EnemyData} data */
     updateData(data){
         this.data = data || this.data
         this.valueText.text = String(this.data.value)
@@ -1916,7 +1963,7 @@ class GameUIEnemyBlock extends GameObject {
             const entry = this.data.items[i]
             if(entry.data.imageId == 0){
                 this.coinText.visible = true
-                this.coinText.text = String(enemyItem.coin.coinFunc(this.data.health, this.data.level))
+                this.coinText.text = String(enemyItem.coin.coinFunc(this.data.health, this.data.level, entry.stack))
             }
             if(entry.data.accessorie){
                 this.accessorieUI.blt(Img.texture.itemEnemy[entry.data.imageId], 0,0,64,64,k*18,0,40,40)
@@ -1964,13 +2011,14 @@ class ShopButton extends Button {
                 // entry.onPress();
             },
             onToggle: function(toggle){
-                this.alpha = toggle ? 1 : 0.5
+                this.alpha = toggle ? 1 : 0.3
             },
             scale: {x:0,y:1}
         })
 
+        /** @type {ItemObject} data */
         this.data = null
-        this.baseSprite = Img.sprite('rect',120,'rgb(56, 56, 56)',{anchor:0.5})
+        this.baseSprite = new Sprite({anchor:0.5})
         this.addChild(this.baseSprite)
         this.price = new Text({
             text: "0",
@@ -1991,13 +2039,25 @@ class ShopButton extends Button {
         this.addChild(this.image)
     }
 
+    /** @param {ItemObject} data @param {boolean} enemy */
     updateData(data,enemy = true){
         if(!data){return}
         this.data = data
+        const valiable = sys.coin >= (this.data.price || 0) && !this.purchased
+        this.toggleValiable(valiable)
+        if(this.purchased){
+            this.image.texture = Img.texture.itemNo
+            this.price.text = ''
+            return;
+        }
         this.data.price = (this.data.priceFormula) ? this.data.priceFormula() : this.data.price
         this.image.texture = (enemy) ? Textures.itemEnemy[data.imageId] : Textures.itemPlayer[data.imageId]
         this.price.text = String(data.price || '')
-        this.baseSprite.tint = data.negative ? 'rgb(255, 119, 119)' : 'rgb(56, 56, 56)'
+        if(!data.accessorie){
+            this.baseSprite.texture = (data.negative) ? Img.texture.itemBaseNegativePassive : Img.texture.itemBasePassive
+        }else{
+            this.baseSprite.texture = Img.texture.itemBaseAccessorie
+        }
     }
 
 }
@@ -2115,14 +2175,12 @@ class GameUI extends GameObject{
                     if(gm.selectedPlayerItem){
                         // if(gm.selectedPlayerItem.data.static && this.sprite.data.items.find(item => item.data === gm.selectedPlayerItem.data)){ Am.playSFX('cancel'); return }
                         gm.player.getItem(gm.selectedPlayerItem.data,this.id)
-                        this.sprite.texture = Img.texture.itemPlayer[gm.selectedPlayerItem.data.imageId]
                         sys.coin -= gm.selectedPlayerItem.data.price || 0
                         const d = gm.selectedPlayerItem // 임시 저장
                         gm.selectedPlayerItem = null // 본인이 아니면 하이라이트 해제를 위한 초기화
                         d.toggleValiable(false)
                         d.onHighlight(false)
                         d.purchased = true
-                        d.image.texture = Img.texture.itemNo
                         gm.ui.updateShopButtons()
                         Am.playSFX('ok')
                     }
@@ -2214,100 +2272,65 @@ class GameUI extends GameObject{
             }
             return list
         }
-        this.enemyItemBtns = itemBtnList()
-        for(let i=0;i<this.enemyItemBtns.length;i++){ 
-            this.enemyItemBtns[i].id = i+2
-            this.enemyItemBtns[i].set(170 * i + 85, 220)   
-            this.enemyItemBtns[i].onPress = function(){
-                if(gm.selectedEnemyItem == this){
-                    this.endRoutine("select")
-                    this.SetValueObj(this.scale,'x',1,10,Easing.easeOutCubic)
-                    this.SetValueObj(this.scale,'y',1,10,Easing.easeOutCubic)
-                    this.SetValue('angle',0,10,Easing.easeOutCubic)
-                    gm.selectedEnemyItem = null
-                    return
+
+        const setupItemButtons = (buttons, selectionKey, y, selectWhen) => {
+            for(let i=0;i<buttons.length;i++){
+                const button = buttons[i]
+                button.id = i + (selectionKey === 'selectedEnemyItem' ? 2 : 6)
+                button.set(170 * i + 85, y)
+                button.onHighlight = function(isActive){
+                    if(gm[selectionKey] == this){return}
+                    this.endAllRoutine(true)
+                    this.SetValueObj(this.scale,'x',isActive ? [1,1.08] : [1.08,1],10,Easing.easeOutCubic)
+                    this.SetValueObj(this.scale,'y',isActive ? [1,1.08] : [1.08,1],10,Easing.easeOutCubic)
+                    if(isActive) Am.playSFX('select')
                 }
-                if(this.data.price > sys.coin){return}
-                const d = gm.selectedEnemyItem
-                gm.selectedEnemyItem = this
-                if(d){
-                    d.onHighlight(false)
-                }
-                this.endAllRoutine(true)
-                this.scale.set(1.2)
-                this.startRoutine("select", function(self){
-                    if(this.whileTime(0)){
-                        self.angle = Graph.sin(this.repeat, -5,5,20)
+                button.onPress = function(){
+                    if(gm[selectionKey] == this){
+                        this.endRoutine("select")
+                        this.SetValueObj(this.scale,'x',1,10,Easing.easeOutCubic)
+                        this.SetValueObj(this.scale,'y',1,10,Easing.easeOutCubic)
+                        this.SetValue('angle',0,10,Easing.easeOutCubic)
+                        gm[selectionKey] = null
+                        return
                     }
-                })
-                Am.playSFX('ok')
-                gm.ui.updateShopButtons()
-            }      
-            this.enemyItemBtns[i].onHighlight = function(isActive){
-                if(gm.selectedEnemyItem == this){return}
-                this.endAllRoutine(true)
-                this.SetValueObj(this.scale,'x',isActive ? [1,1.08] : [1.08,1],10,Easing.easeOutCubic)
-                this.SetValueObj(this.scale,'y',isActive ? [1,1.08] : [1.08,1],10,Easing.easeOutCubic)
-                if(isActive) Am.playSFX('select')
-            }     
-            this.shopGroup.addItem(this.enemyItemBtns[i])
+                    if(this.data.price > sys.coin){return}
+
+                    if(selectWhen(this.data)){
+                        const selectedButton = gm[selectionKey]
+                        gm[selectionKey] = this
+                        if(selectedButton){
+                            selectedButton.onHighlight(false)
+                        }
+                        this.endAllRoutine(true)
+                        this.scale.set(1.2)
+                        this.startRoutine("select", function(self){
+                            if(this.whileTime(0)){
+                                self.angle = Graph.sin(this.repeat, -5,5,20)
+                            }
+                        })
+                        Am.playSFX('ok')
+                        gm.ui.updateShopButtons()
+                        return
+                    }
+
+                    gm.player.getItem(this.data)
+                    sys.coin -= this.data.price || 0
+                    this.toggleValiable(false)
+                    this.purchased = true
+                    gm.ui.updateShopButtons()
+                    Am.playSFX('ok')
+                }
+                this.shopGroup.addItem(button)
+            }
         }
+
+        this.enemyItemBtns = itemBtnList()
+        setupItemButtons(this.enemyItemBtns, 'selectedEnemyItem', 220, () => true)
 
 
         this.playerItemBtns = itemBtnList()
-        for(let i=0;i<this.playerItemBtns.length;i++){ 
-            this.playerItemBtns[i].id = i+6
-            this.playerItemBtns[i].set(170 * i + 85, 370)    
-            this.playerItemBtns[i].onHighlight = function(isActive){
-                if(gm.selectedPlayerItem == this){return}
-                this.endAllRoutine(true)
-                this.SetValueObj(this.scale,'x',isActive ? [1,1.08] : [1.08,1],10,Easing.easeOutCubic)
-                this.SetValueObj(this.scale,'y',isActive ? [1,1.08] : [1.08,1],10,Easing.easeOutCubic)
-                if(isActive) Am.playSFX('select')
-            }
-            this.playerItemBtns[i].onPress = function(){
-                if(gm.selectedPlayerItem == this){
-                    this.endRoutine("select")
-                    this.SetValueObj(this.scale,'x',1,10,Easing.easeOutCubic)
-                    this.SetValueObj(this.scale,'y',1,10,Easing.easeOutCubic)
-                    this.SetValue('angle',0,10,Easing.easeOutCubic)
-                    gm.selectedPlayerItem = null
-                    return
-                }
-                if(this.data.price > sys.coin){return}
-
-
-                if(this.data.accessorie){
-                    const d = gm.selectedPlayerItem
-                    gm.selectedPlayerItem = this
-                    if(d){
-                        d.onHighlight(false)
-                    }
-                    this.endAllRoutine(true)
-                    this.scale.set(1.2)
-                    this.startRoutine("select", function(self){
-                        if(this.whileTime(0)){
-                            self.angle = Graph.sin(this.repeat, -5,5,20)
-                        }
-                    })
-                    Am.playSFX('ok')
-                    gm.ui.updateShopButtons()
-                    return
-                }
-
-
-
-
-                gm.player.getItem(this.data)
-                sys.coin -= this.data.price || 0
-                this.toggleValiable(false)
-                this.purchased = true
-                gm.ui.updateShopButtons()
-                this.image.texture = Img.texture.itemNo
-                Am.playSFX('ok')
-            }        
-            this.shopGroup.addItem(this.playerItemBtns[i])
-        }
+        setupItemButtons(this.playerItemBtns, 'selectedPlayerItem', 370, data => data.accessorie)
 
         this.rerollBtn = new Button({
             id: 10,
@@ -2578,7 +2601,6 @@ class GameUI extends GameObject{
                             d.toggleValiable(false)
                             d.onHighlight(false)
                             d.purchased = true
-                            d.image.texture = Img.texture.itemNo
                             gm.ui.updateShopButtons()
                             Am.playSFX('ok')
                         }
@@ -2654,9 +2676,7 @@ class GameUI extends GameObject{
             if(!reroll){ 
                 this.enemyItemBtns[i].purchased = false
             }
-            if(!this.enemyItemBtns[i].purchased){
-                this.enemyItemBtns[i].updateData(data.enemyItems[i],true)
-            }
+            this.enemyItemBtns[i].updateData(data.enemyItems[i],true)
         }
         for(let i=0;i<4;i++){
             if(this.playerItemBtns[i].data){
@@ -2665,9 +2685,7 @@ class GameUI extends GameObject{
             if(!reroll){
                 this.playerItemBtns[i].purchased = false
             }
-            if(!this.playerItemBtns[i].purchased){
-                this.playerItemBtns[i].updateData(data.playerItems[i],false)
-            }
+            this.playerItemBtns[i].updateData(data.playerItems[i],false)
         }
         this.updateShopButtons() 
     }
@@ -2679,10 +2697,12 @@ class GameUI extends GameObject{
         const hasRightEnemy = sys.enemys.find(enemy => enemy.enemy === this.enemyRight.data.enemy);
         this.enemyRight.toggleValiable((newEnemyAble || hasRightEnemy) && !this.enemyRight.purchased)
         this.enemyItemBtns.forEach(btn => {
-            btn.toggleValiable(!btn.purchased && sys.coin >= (btn.data.price || 0))
+            btn.updateData(btn.data, true)
+            //btn.toggleValiable(!btn.purchased && sys.coin >= (btn.data.price || 0))
         })
         this.playerItemBtns.forEach(btn => {
-            btn.toggleValiable(!btn.purchased && sys.coin >= (btn.data.price || 0))
+            btn.updateData(btn.data, false)
+            //btn.toggleValiable(!btn.purchased && sys.coin >= (btn.data.price || 0))
         })
     }
     updatePlayerItems(){
@@ -2717,33 +2737,37 @@ class GameUI extends GameObject{
 }
 
 class EnemyData {
-    constructor(data){
-        this._data = data
-        this.enemy = data.enemy
-        this.health = data.health
+    /** @param {EnemyDataBase} d */
+    constructor(d){
+        this.data = d
+        this.enemy = d.enemy
+        this.health = d.health
         this.level = 1
-        this.color = data.color
-        this.value = data.value
-        this.spawnRate = data.spawnRate
-        this.spell = data.spell
+        this.color = d.color
+        this.value = d.value
+        this.spawnRate = d.spawnRate
+        this.spell = d.spell
+        /** @type {ItemData[]} */
         this.items = []
+        /** @type {ItemData} */
         this.accessorie = null
 
         this.blockUI = null
 
-        this.upgrade = data.upgrade
+        this.upgrade = d.upgrade
     }
 
+    /** @param {ItemObject} item */
     getItem(item){
         if(item.accessorie){
-            if(this.accessorie){
-                this.items.splice(this.items.findIndex(i => i.data === this.accessorie), 1)
-            }
-            this.accessorie = item
-            this.items.push({
-                stack: 1,
+            // 이미 있는 악세사리 리스트에서 삭제
+            if(this.accessorie) this.items.splice(this.items.findIndex(i => i === this.accessorie), 1)
+            // 새로 획득
+            this.accessorie = {
+                stack: this.items.find(i => i.data == enemyItem.accessoriePower)?.stack+1 || 1,
                 data:item
-            })
+            }
+            this.items.push(this.accessorie)
         }else{
             // 이미 item이 존재하는지 확인
             const existingItem = this.items.find(i => i.data === item);
@@ -2774,6 +2798,12 @@ class EnemyData {
 
     setHealth(value){
         this.health = value
+        this.blockUI.updateData(this)
+    }
+
+    setSpawnRate(value){
+        this.spawnRate = value
+        this.blockUI.updateData(this)
     }
 }
 
@@ -2823,7 +2853,7 @@ export class SystemManager {
         this.comboTimeMax = 0
         this.comboTimeDefaultMax = 60
         
-        this.enemys = [ ]
+        /** @type {EnemyData[]} */ this.enemys = []
         // this.bossHealth = 100
         this.bossSpawned = false
 
@@ -2973,9 +3003,9 @@ export class SystemManager {
         if(this.stage == 0){
             this.firstStage()
         }else{
-            for(let enemy of this.enemys){
-                enemy.setLevel(enemy.level+1)
-            }
+            // for(let enemy of this.enemys){
+            //     enemy.setLevel(enemy.level+1)
+            // }
         }
         this.setLive(this.liveMax)
         this.score = 0
@@ -2996,7 +3026,7 @@ export class SystemManager {
         const oldShopData = this.shopData
         const eNegList = Object.keys(enemyItem).filter(key => enemyItem[key].negative)
         const eNotNegList = Object.keys(enemyItem).filter(key => !enemyItem[key].negative)
-        const elist = Object.keys(enemyArcaive)
+        const elist = Object.keys(enemyArcaive).filter(key => !this.enemys.find(enemy => enemy.data === enemyArcaive[key]))
         const eilist = Object.keys(enemyItem)
         const pilist = Object.keys(playerItem).filter(key => !playerItem[key].accessorie)
         const pStaticList = Object.keys(playerItem).filter(
@@ -3196,6 +3226,7 @@ export class GameManager extends SceneObject {
 
         this.selectedEnemyItem = null
         this.selectedPlayerItem = null
+        this.consoleComputer = new ConsoleComputer()
     }
 
     getBullets(){
@@ -3369,8 +3400,185 @@ export class GameManager extends SceneObject {
         this.subUpdate()
         this.ui.update()
         this.dialog.update()
+        if (Input.isPressed(KeyBind.CONSOLE)) {
+            this.consoleComputer.toggle()
+        }
         if (Input.isPressed(KeyBind.CANCEL)) {
             Scene.enter(Scene.sceneList.Pause)
+        }
+    }
+}
+
+
+class ConsoleComputer {
+    constructor() {
+        this.root = document.createElement('section')
+        this.root.id = 'consoleComputer'
+        this.root.innerHTML = `
+            <header><strong>CHEAT CONSOLE</strong><span>~ to close</span></header>
+            <div class="console-grid">
+                <div class="console-row">
+                    <button type="button" data-action="open-shop">상점 열기</button>
+                    <button type="button" data-action="close-shop">상점 닫기</button>
+                </div>
+                <div class="console-row">
+                    <label for="consoleEnemy">적</label>
+                    <select id="consoleEnemy"></select>
+                    <button type="button" data-action="get-enemy">획득</button>
+                </div>
+                <div class="console-row">
+                    <label for="consolePlayerItem">플레이어 아이템</label>
+                    <select id="consolePlayerItem"></select>
+                    <button type="button" data-action="get-player-item">획득</button>
+                </div>
+                <div class="console-row">
+                    <label for="consoleEnemyItem">적 아이템</label>
+                    <select id="consoleEnemyItem"></select>
+                    <input id="consoleEnemyItemIndex" type="number" min="0" step="1" value="0" aria-label="적 인덱스">
+                    <button type="button" data-action="get-enemy-item">획득</button>
+                </div>
+                <div class="console-row">
+                    <label for="consoleSpawnIndex">적 인덱스</label>
+                    <input id="consoleSpawnIndex" type="number" min="0" step="1" value="0">
+                    <button type="button" data-action="spawn-enemy">소환</button>
+                </div>
+                <div class="console-row">
+                    <label for="consoleCoin">돈 설정</label>
+                    <input id="consoleCoin" type="number" min="0" step="1" value="0">
+                    <button type="button" data-action="set-coin">적용</button>
+                    <label for="consoleLife">잔기 설정</label>
+                    <input id="consoleLife" type="number" min="0" step="1" value="0">
+                    <button type="button" data-action="set-life">적용</button>
+                    <label for="consoleBombPower">봄 게이지</label>
+                    <input id="consoleBombPower" type="number" min="0" max="100" step="1" value="0">
+                    <button type="button" data-action="set-bomb-power">적용</button>
+                </div>
+            </div>
+            <div class="console-status" aria-live="polite"></div>
+        `
+        document.body.appendChild(this.root)
+
+        this.enemySelect = this.root.querySelector('#consoleEnemy')
+        this.playerItemSelect = this.root.querySelector('#consolePlayerItem')
+        this.enemyItemSelect = this.root.querySelector('#consoleEnemyItem')
+        this.enemyItemIndex = this.root.querySelector('#consoleEnemyItemIndex')
+        this.spawnIndex = this.root.querySelector('#consoleSpawnIndex')
+        this.coinInput = this.root.querySelector('#consoleCoin')
+        this.lifeInput = this.root.querySelector('#consoleLife')
+        this.bombPowerInput = this.root.querySelector('#consoleBombPower')
+        this.status = this.root.querySelector('.console-status')
+
+        this.setOptions(this.enemySelect, Object.keys(enemyArcaive))
+        this.setOptions(this.playerItemSelect, Object.keys(playerItem))
+        this.setOptions(this.enemyItemSelect, Object.keys(enemyItem))
+
+        this.root.addEventListener('click', event => this.handleAction(event))
+    }
+
+    setOptions(select, keys) {
+        for (const key of keys) {
+            const option = document.createElement('option')
+            option.value = key
+            option.textContent = key
+            select.appendChild(option)
+        }
+    }
+
+    getIndex(input) {
+        return Math.max(0, Math.floor(Number(input.value) || 0))
+    }
+
+    setStatus(message) {
+        this.status.textContent = message
+    }
+
+    getEnemy(index) {
+        const enemy = sys.enemys[index]
+        if (!enemy) {
+            this.setStatus(`적 인덱스 ${index}가 없습니다.`)
+            return null
+        }
+        return enemy
+    }
+
+    handleAction(event) {
+        const action = event.target.dataset.action
+        if (!action) return
+
+        if (action === 'open-shop') {
+            sys.openShop()
+            this.setStatus('상점을 열었습니다.')
+            return
+        }
+        if (action === 'close-shop') {
+            gm.ui.hideShop()
+            this.setStatus('상점을 닫았습니다.')
+            return
+        }
+        if (action === 'get-enemy') {
+            const key = this.enemySelect.value
+            sys.addEnemy(enemyArcaive[key])
+            this.setStatus(`${key} 적을 획득했습니다.`)
+            return
+        }
+        if (action === 'get-player-item') {
+            const key = this.playerItemSelect.value
+            gm.player.getItem(playerItem[key])
+            this.setStatus(`${key} 플레이어 아이템을 획득했습니다.`)
+            return
+        }
+        if (action === 'get-enemy-item') {
+            const index = this.getIndex(this.enemyItemIndex)
+            const enemy = this.getEnemy(index)
+            if (!enemy) return
+            const key = this.enemyItemSelect.value
+            enemy.getItem(enemyItem[key])
+            this.setStatus(`${index}번 적에게 ${key} 아이템을 적용했습니다.`)
+            return
+        }
+        if (action === 'spawn-enemy') {
+            const index = this.getIndex(this.spawnIndex)
+            const enemy = this.getEnemy(index)
+            if (!enemy) return
+            gm.spawnEnemy(pos(GS * 0.5, -60), enemy)
+            this.setStatus(`${index}번 적을 화면 상단에 소환했습니다.`)
+            return
+        }
+        if (action === 'set-coin') {
+            sys.coin = this.getIndex(this.coinInput)
+            this.setStatus(`돈을 ${sys.coin}으로 설정했습니다.`)
+            return
+        }
+        if (action === 'set-life') {
+            sys.setLive(this.getIndex(this.lifeInput))
+            this.setStatus(`플레이어 잔기를 ${sys.live}로 설정했습니다.`)
+            return
+        }
+        if (action === 'set-bomb-power') {
+            gm.player.setBombPower(Math.min(100, this.getIndex(this.bombPowerInput)))
+            this.setStatus(`봄 게이지를 ${gm.player.bombPower}으로 설정했습니다.`)
+        }
+    }
+
+    open() {
+        gm.ui.hideShop()
+        this.coinInput.value = String(sys.coin)
+        this.lifeInput.value = String(sys.live)
+        this.bombPowerInput.value = String(gm.player.bombPower)
+        this.root.classList.add('is-open')
+        this.setStatus('치트 콘솔을 열었습니다.')
+    }
+
+    close() {
+        this.root.classList.remove('is-open')
+        document.activeElement?.blur()
+    }
+
+    toggle() {
+        if (this.root.classList.contains('is-open')) {
+            this.close()
+        } else {
+            this.open()
         }
     }
 }
