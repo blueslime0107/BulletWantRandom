@@ -278,7 +278,7 @@ class Enemy extends ShotObject {
 
     triggerItem(trigger, ...args){
         for(let item of this.items){
-            item.data[trigger]?.call(this, item.stack, ...args)
+            item.data[trigger]?.call(this, item, ...args)
         }
     }
 
@@ -1069,6 +1069,10 @@ class Player extends GameObject {
         this.deathCancel = false 
     }
 
+    get godMode(){
+        return this._godMode || this._godFrame > 0 || this._godTriggers.length > 0
+    }
+
     reset(){
         this.radius = 12
         this.hitCircle.scale.set(this.radius / 12)
@@ -1077,10 +1081,16 @@ class Player extends GameObject {
         this.position.set(GS * 0.5, GS * 0.75)
         this.shotMainDelay = 2
         this.shotCount = 0
-        this.godMode = false
+
+
+        this._godMode = false
+        this._godFrame = 0
+        this._godTriggers = []
+
         this.shotAble = true
         this.blockMove = false
         this.bombPower = 0
+        this.reviveGodTime = 120
         this.touchStartPlayerPos = {x: this.x, y: this.y}
 
         for(let optionKey in this.options){
@@ -1111,7 +1121,20 @@ class Player extends GameObject {
         this.updateOptions()
         this.updateShots()
         this.updateBomb()
+        this.updateItem()
         this.updateSprite()
+
+        if(this.godMode){
+            if(this._godFrame > 0){
+                this._godFrame--
+            }
+            this.baseSprite.alpha = 0.7
+            this.baseSprite.tint = 'rgb(0, 119, 255)'
+        }else{
+            this.baseSprite.alpha = 1
+            this.baseSprite.tint = 0xffffff
+        }
+
         this.hitCircle.angle+=3
     }
 
@@ -1163,6 +1186,11 @@ class Player extends GameObject {
         if (this.y > GS - this.radius - this.borderOffset) this.y = GS - this.radius - this.borderOffset
     }
 
+    pressedAny(){
+        return (this.mobile) ? Input.isDragging() || Input.isMultiTouch() : 
+        Input.isDown(KeyBind.OK) || Input.isPressed(KeyBind.SUBKEY) || Input.isDown(KeyBind.SLOW) || 
+        Input.isDown(KeyBind.LEFT) || Input.isDown(KeyBind.RIGHT) || Input.isDown(KeyBind.UP) || Input.isDown(KeyBind.DOWN)
+    }
     pressedShot(){
         return (this.mobile) ? Input.isDragging() : Input.isDown(KeyBind.OK)
     }
@@ -1208,13 +1236,12 @@ class Player extends GameObject {
         this.triggerItem('onDeath')
         if(this.deathCancel){
             Am.playSFX("pDead")
+            this.getGodTime(this.reviveGodTime)
             this.deathCancel = false
-            this.getGodTime(120)
-            this.godMode = true
             return
         }
         gm.killAll(['bullet','enemy'])
-        this.godMode = true
+        this._godMode = true
         this.shotAble = false
         this.blockMove = true
         sys.playerKilled()
@@ -1236,11 +1263,13 @@ class Player extends GameObject {
         })
     }
     grazed(bullet){
+        this.__grazed__ = !this.godMode
+        this.triggerItem('onGrazeBefore')
+        if(!this.__grazed__){return}
         Am.playSFX('graze')
         this.setBombPower(this.bombPower + 1)
         this.triggerItem('onGraze')
     }
-
 
     appear(){
         this.blockMove = true
@@ -1259,28 +1288,14 @@ class Player extends GameObject {
                     self.touchStartPlayerPos.y = self.y - delta.y
                 }
                 self.shotAble = true
-                self.getGodTime(120)
+                self._godMode = false
+                self.getGodTime(self.reviveGodTime)
             }
         })
     }
+
     getGodTime(time){
-        if(time == 0){
-            this.endRoutine("godTime")
-            this.baseSprite.alpha = 1
-            this.baseSprite.tint = 0xffffff
-            this.godMode = false
-        }
-        this.startRoutine("godTime",function(self){
-            if(this.whenTime(0)){
-                self.baseSprite.alpha = 0.7
-                self.baseSprite.tint = 'rgb(0, 119, 255)'
-            }
-            if(this.whenTime(time)){
-                self.baseSprite.alpha = 1
-                self.baseSprite.tint = 0xffffff
-                self.godMode = false
-            }
-        })
+        this._godFrame = time
     }
 
     updateBomb(){
@@ -1453,6 +1468,12 @@ class Player extends GameObject {
         }
     }
 
+    updateItem(){
+        for(let i=0;i<this.items.length;i++){
+            const item = this.items[i]
+            item.data.onUpdate?.call(this, item)
+        }
+    }
     getItem(item,index=-1){
         const existingItem = this.items.find(i => i.data === item);
         if(existingItem){
@@ -1467,7 +1488,8 @@ class Player extends GameObject {
             this.items.push({
                 stack: 1,
                 data:item,
-                index: index
+                index: index,
+                frame: 0
             })
         }
         if(item.onEquip){
@@ -1483,9 +1505,9 @@ class Player extends GameObject {
         gm.ui.updatePlayerItems()
     }
 
-    triggerItem(trigger){
+    triggerItem(trigger, ...args){
         for(let item of this.items){
-            item.data[trigger]?.call(this, item.stack)
+            item.data[trigger]?.call(this, item, ...args)
         }
     }
     
@@ -2776,7 +2798,8 @@ class EnemyData {
             } else {
                 this.items.push({
                     stack: 1,
-                    data:item
+                    data:item,
+                    frame: 0
                 })
             }
         }

@@ -437,8 +437,8 @@ const enemyItem = {
         imageId: 0,
         price:8,
         accessorie: true,
-        onDeath: function(stack){
-            const value = enemyItem.coin.coinFunc(this.maxHealth, this.level, stack)
+        onDeath: function(item){
+            const value = enemyItem.coin.coinFunc(this.maxHealth, this.level, item.stack)
             sys.coin += value
             gm.effectBox.spawnNumberBubble(this,value,'rgb(252, 255, 48)')
         },
@@ -450,8 +450,8 @@ const enemyItem = {
         imageId: 2,
         price:12,
         accessorie: true,
-        onDeath: function(stack){
-            gm.spawnKillCircle(this.pos,30+20*stack,'enemy')
+        onDeath: function(item){
+            gm.spawnKillCircle(this.pos,30+20*item.stack,'enemy')
         }
     },
     levelUp: {
@@ -467,11 +467,11 @@ const enemyItem = {
         imageId: 4,
         accessorie: false,
         negative: true,
-        onDeath: function(stack){
+        onDeath: function(item){
             const enemy = this
             const dir = lookPoint(enemy,gm.player)
             gm.startRoutine("counterBullet",function(self){
-                if(this.whileTime(Math.max(1,6-stack),this.repeat<2*stack)){
+                if(this.whileTime(Math.max(1,6-item.stack),this.repeat<2*item.stack)){
                     Am.playSFX("tan1")
                     gm.spawnBullet(BData.kunai,1,enemy).MoveDir(dir+getRandom(-3,3),10)
                 }
@@ -491,8 +491,8 @@ const enemyItem = {
         imageId: 8,
         accessorie: false,
         negative: true,
-        onSpawn: function(stack){
-            this.getGodTime(40*stack)
+        onSpawn: function(item){
+            this.getGodTime(40*item.stack)
         },
         onEquip: function(){
             this.setValue(this.value + this.upgrade)
@@ -511,7 +511,7 @@ const enemyItem = {
     //     price: 5,
     //     negative: true,
     //     static: true, // 하나만 획득 가능
-    //     onDamage: function(stack,count,attacker){
+    //     onDamage: function(item.stack,count,attacker){
     //         if(attacker == 'killCircle'){
     //             this.health += count
     //         }
@@ -521,8 +521,8 @@ const enemyItem = {
         imageId: 7,
         price: 100,
         accessorie: true,
-        onDeath: function(stack){
-            if(getRandom(0,100) < 10*stack){
+        onDeath: function(item){
+            if(getRandom(0,100) < 10*item.stack){
                 this.whenDeadScore()
                 this.whenDeadScore()
                 this.whenDeadScore()
@@ -714,8 +714,8 @@ const playerItem = {
     bombPowerget: {
         imageId: 6,
         price: 200,
-        onGraze: function(stack){
-            gm.player.setBombPower(gm.player.bombPower + stack)
+        onGraze: function(item){
+            gm.player.setBombPower(gm.player.bombPower + item.stack)
         }
     },
     bombSpeedUp: {
@@ -777,11 +777,48 @@ const playerItem = {
         imageId: 12,
         price: 1500,
         accessorie: true,
-        onDeath: function(stack){
+        onDeath: function(item){
             if(this.ableToTriggerBomb()){
                 this.deathCancel = true
                 this.triggerBomb()
             }
+        }
+    },
+    magicalLeaf: {
+        imageId : 13,
+        price: 100,
+        accessorie: true,
+        onUpdate: function(item){
+            if(gm.player.pressedAny()){
+                if(gm.player._godTriggers.includes('magicalLeaf')){
+                    gm.player._godTriggers.splice(gm.player._godTriggers.indexOf('magicalLeaf'),1)
+                }
+                item.frame = 0
+            }else{
+                if(item.frame > 120){
+                    if(!gm.player._godTriggers.includes('magicalLeaf')){
+                        gm.player._godTriggers.push('magicalLeaf')
+                    }
+                }else{
+                    item.frame++
+                }
+            }
+        }
+    },
+    'lifeMult':{
+        imageId: 14,
+        price: 1000,
+        accessorie: true,
+        onRoundEnd: function(){
+            sys.redScore *= sys.live || 1
+        }
+    },
+    'godTimeGraze':{
+        imageId: 15,
+        price: 1000,
+        accessorie: true,
+        onGrazeBefore: function(item){
+            gm.player.__grazed__ = true
         }
     }
 }
